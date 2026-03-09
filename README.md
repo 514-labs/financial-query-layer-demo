@@ -135,7 +135,7 @@ That single addition propagates to all four consumers automatically:
 3. **REST API** — `/transaction/metrics?metrics=medianTransactionAmount` works immediately
 4. **Report builder UI** — the new metric appears as a selectable chip with no frontend changes
 
-<video src="harness-demo.mp4" controls width="700"></video>
+https://github.com/user-attachments/assets/df03f8c1-0557-4238-977c-fda09842e215
 
 ## Schema Design
 
