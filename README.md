@@ -15,6 +15,12 @@ The dashboard's revenue endpoint filters transactions to `status = 'completed'` 
 
 This is the core motivation for a **semantic layer**: define business metrics once (e.g. "revenue = completed transactions only") and expose them through both the dashboard API and MCP tools, so every consumer gets the same answer.
 
+## The Fix: Define Once, Use Everywhere
+
+![Chat and dashboard return the same revenue figure](good-prompt.gif)
+
+With a query layer in place, revenue is defined exactly once — `sumIf(totalAmount, status = 'completed')` — in a single `defineQueryModel()` call. Both the dashboard API (via `buildQuery()`) and the AI chat (via `registerModelTools()`) consume the same model. The LLM no longer writes free-form SQL against raw tables; it calls the `query_transaction_metrics` tool, which enforces the correct business logic. The dashboard and chat now return the same number.
+
 ## Quickstart
 
 ### Prerequisites
