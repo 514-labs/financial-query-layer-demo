@@ -114,7 +114,7 @@ The report builder discovers its UI dynamically from the query model via `/trans
 
 ## Adding a Metric with AI
 
-Because the query model is the single source of truth, adding a new metric is a one-line change — and you can ask an AI coding agent to do it:
+Because the query model is the single source of truth, adding a new metric is a one-line change — and with the dev harness (MooseDev MCP + ClickHouse Best Practices skill), you can ask an AI coding agent to do it:
 
 > **Prompt:** "add a metric for median transaction amounts"
 
