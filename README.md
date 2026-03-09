@@ -74,40 +74,21 @@ Make sure the following ports are free before running `pnpm dev`. Change them in
 
 ## Data Architecture
 
-```text
-Temporal Workflow (@every 15s)
-  │
-  │  generates fake data via direct ClickHouse inserts
-  │
-  ▼
-┌──────────────────────────────────────────┐
-│  ClickHouse Tables                       │
-│  users · products · transactions         │
-│  transaction_line_items                  │
-└──────────────────┬───────────────────────┘
-                   │
-     ┌─────────────┴─────────────┐
-     │  Query Layer               │
-     │  defineQueryModel()        │
-     │  transactionMetrics        │
-     │  revenue = sumIf(          │
-     │    totalAmount,            │
-     │    status = 'completed')   │
-     └─────┬───────────┬─────────┘
-           │           │
-     buildQuery()  registerModelTools()
-           │           │
-     ┌─────┴─────┐   ┌┴──────────────┐
-     │ /revenue  │   │ /tools (MCP)  │
-     │ Express   │   │ query_         │
-     │ API       │   │ transaction_   │
-     │           │   │ metrics        │
-     └─────┬─────┘   └────┬──────────┘
-           │              │
-     ┌─────┴─────┐   ┌───┴───────┐
-     │ Dashboard │   │ Chat UI   │
-     │ Next.js   │   │ Next.js   │
-     └───────────┘   └───────────┘
+```mermaid
+graph TD
+    W["Temporal Workflow<br/><i>@every 15s</i>"]
+    W -->|"generates fake data via<br/>direct ClickHouse inserts"| CH
+
+    CH["ClickHouse Tables<br/>users · products · transactions<br/>transaction_line_items"]
+    CH --> QL
+
+    QL["Query Layer<br/><code>defineQueryModel()</code><br/><code>transactionMetrics</code><br/><code>revenue = sumIf(totalAmount, status = 'completed')</code>"]
+
+    QL -->|"buildQuery()"| REV["/revenue<br/>Express API"]
+    QL -->|"registerModelTools()"| MCP["/tools (MCP)<br/>query_transaction_metrics"]
+
+    REV --> DASH["Dashboard<br/>Next.js"]
+    MCP --> CHAT["Chat UI<br/>Next.js"]
 ```
 
 Compare with the [pre-query-layer architecture (`7da601e`)](https://github.com/514-labs/financial-query-layer-demo/blob/7da601e/README.md#data-architecture), where the dashboard used hand-written SQL and the MCP server exposed free-form `query_clickhouse` with no shared metric definitions.
