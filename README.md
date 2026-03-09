@@ -1,116 +1,113 @@
-# TypeScript MCP Template
+# Financial Query Layer Demo
 
-This template provides a complete example of building AI-powered chat-over-data applications with MooseStack and the Model Context Protocol (MCP).
+A financial services data surface built with [MooseStack](https://docs.fiveonefour.com) and [MCP](https://modelcontextprotocol.io). Two ways to access the same data:
 
-This README covers the **quickstart** — getting the template running locally. For a full guided walkthrough including data modeling, loading data from S3, customizing the frontend, and deploying to production, see the [Chat in Your App Tutorial](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial).
+1. **MCP** — AI chat with free SQL generation against ClickHouse via the Model Context Protocol
+2. **Dashboard** — hand-crafted Express API endpoints powering a Next.js frontend with revenue metrics
 
-## Overview
+This is a companion demo for the blog post [Define Once, Use Everywhere](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial).
 
-This is a pnpm monorepo containing two independent applications that work together:
+## Architecture
 
 ```text
-Next.js App (Chat UI -> API Route -> MCP Client)
-    | HTTP + Bearer Token |
-MooseStack Service (Tools -> MCP Server -> ClickHouse)
+┌─────────────────────────────────────────────┐
+│  Next.js Frontend (localhost:3000)           │
+│  ┌───────────────┐  ┌────────────────────┐  │
+│  │  Dashboard     │  │  Chat UI           │  │
+│  │  (hand-written │  │  (MCP client →     │  │
+│  │   SQL via API) │  │   free SQL gen)    │  │
+│  └───────┬───────┘  └────────┬───────────┘  │
+└──────────┼───────────────────┼──────────────┘
+           │                   │
+┌──────────┼───────────────────┼──────────────┐
+│  MooseStack (localhost:4000)                 │
+│  ┌───────┴───────┐  ┌───────┴───────────┐  │
+│  │ /revenue/*    │  │ /tools (MCP)      │  │
+│  │ Express API   │  │ query_clickhouse  │  │
+│  └───────┬───────┘  │ get_data_catalog  │  │
+│          │          └───────┬───────────┘  │
+│          └──────────┬───────┘              │
+│               ClickHouse                    │
+│  ┌──────────────────────────────────────┐  │
+│  │ users | products | transactions      │  │
+│  │ transaction_line_items               │  │
+│  └──────────────────────────────────────┘  │
+└─────────────────────────────────────────────┘
 ```
 
-- **`packages/moosestack-service/`** — MooseStack backend with a custom MCP server, built using [BYO API](https://docs.fiveonefour.com/moosestack/app-api-frameworks) and Express
-- **`packages/web-app/`** — Next.js frontend with a pre-configured AI chat interface
+## Data Model
 
-## Prerequisites
+Four tables generating data via a Temporal workflow every 15 seconds:
+
+| Table | Purpose |
+|---|---|
+| `users` | Customer dimension (name, email, region, plan) |
+| `products` | Product catalog (name, category, price) |
+| `transactions` | Financial headers (userId, status, region, totalAmount) |
+| `transaction_line_items` | Line-item detail (productId, quantity, unitPrice, amount) |
+
+## Getting Started
+
+### Prerequisites
 
 - Node.js v20+ and pnpm v8+
 - Docker Desktop (running)
 - Moose CLI: `bash -i <(curl -fsSL https://fiveonefour.com/install.sh) moose`
-- [Anthropic API key](https://console.anthropic.com/)
+- [Anthropic API key](https://console.anthropic.com/) (for chat)
 
-## Getting Started
-
-Initiate your project:
-
-```bash
-moose init <project-name> typescript-mcp
-cd <project-name>
-```
-
-Install dependencies for both applications:
+### Setup
 
 ```bash
 pnpm install
-```
 
-Copy example environment variables:
-
-```bash
 cp packages/moosestack-service/.env.{example,local}
 cp packages/web-app/.env.{example,local}
 ```
 
-Create API Key authentication tokens:
+Generate auth tokens:
 
 ```bash
 cd packages/moosestack-service
-moose generate hash-token # use output for the API Key & Token below
+moose generate hash-token
 ```
 
-Set environment variables. `moose generate hash-token` outputs a key pair — the hash goes to the backend and the token goes to the frontend:
+Set environment variables:
 
 | Variable | File | Value |
-| --- | --- | --- |
-| `MCP_API_KEY` | `packages/moosestack-service/.env.local` | `ENV API Key` (hash) from `moose generate hash-token` |
-| `MCP_API_TOKEN` | `packages/web-app/.env.local` | `Bearer Token` from `moose generate hash-token` |
-| `ANTHROPIC_API_KEY` | `packages/web-app/.env.local` | Your [Anthropic API key](https://console.anthropic.com/) |
+|---|---|---|
+| `MCP_API_KEY` | `packages/moosestack-service/.env.local` | Hash from `moose generate hash-token` |
+| `MCP_API_TOKEN` | `packages/web-app/.env.local` | Bearer Token from `moose generate hash-token` |
+| `ANTHROPIC_API_KEY` | `packages/web-app/.env.local` | Your Anthropic API key |
 
-Start both services:
-
-```bash
-pnpm dev
-```
-
-Or start services individually:
+### Run
 
 ```bash
-pnpm dev:moose    # Start MooseStack service only
-pnpm dev:web      # Start web app only
+pnpm dev          # Both services
+pnpm dev:moose    # Backend only
+pnpm dev:web      # Frontend only
 ```
 
-Access the application at `http://localhost:3000`. Click the chat icon in the bottom-right corner to open the chat panel.
+- Dashboard: http://localhost:3000
+- MooseStack API: http://localhost:4000
+- Revenue endpoint: http://localhost:4000/revenue/by-region
+- MCP endpoint: http://localhost:4000/tools
+- Temporal UI: http://localhost:8080
 
-### Local Development Ports
+### Ports
 
-Make sure the following ports are free before running `pnpm dev`. If any are in use, you can change them in `packages/moosestack-service/moose.config.toml`.
+| Service | Port |
+|---|---|
+| Next.js | 3000 |
+| MooseStack HTTP/MCP | 4000 |
+| Management API | 5001 |
+| Temporal | 7233 |
+| Temporal UI | 8080 |
+| ClickHouse HTTP | 18123 |
+| ClickHouse native | 9000 |
 
-| Service              | Port  |
-| -------------------- | ----- |
-| Next.js web app      | 3000  |
-| MooseStack HTTP/MCP  | 4000  |
-| Management API       | 5001  |
-| Temporal             | 7233  |
-| Temporal UI          | 8080  |
-| ClickHouse HTTP      | 18123 |
-| ClickHouse native    | 9000  |
+## Connecting MCP Clients
 
-### Agent Harness
-
-This template ships with an agent harness — a set of tools that give your AI copilot full context over the project:
-
-- **[MooseDev MCP](https://docs.fiveonefour.com/moosestack/moosedev-mcp)** — MooseStack's built-in MCP server for querying your local database and inspecting your data pipeline (requires `pnpm dev:moose` running)
-- **[Context7](https://github.com/upstash/context7)** — serves up-to-date MooseStack documentation to your copilot
-- **[ClickHouse Best Practices Skill](https://github.com/514-labs/agent-skills)** — optimized query and schema guidance for ClickHouse
-
-The MCP servers are pre-configured in `.mcp.json` and most AI copilots (Claude Code, Cursor, etc.) pick them up automatically. To install the skill:
-
-```bash
-npx skills add https://github.com/514-labs/agent-skills --skill moosestack-clickhouse-best-practices
-```
-
-## Next Steps
-
-For a full walkthrough of data modeling, loading data, customizing the frontend, and deploying to production, see the [Chat in Your App Tutorial](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial).
-
-## Connecting External MCP Clients
-
-This template exposes a custom MCP server at `/tools` (separate from MooseStack's [built-in MCP server](https://docs.fiveonefour.com/moosestack/moosedev-mcp) at `/mcp`). You can connect external MCP clients to it:
+The MCP server at `/tools` exposes `query_clickhouse` and `get_data_catalog` tools. Connect any MCP client:
 
 ### Claude Code
 
@@ -118,9 +115,7 @@ This template exposes a custom MCP server at `/tools` (separate from MooseStack'
 claude mcp add --transport http moose-tools http://localhost:4000/tools --header "Authorization: Bearer <your_bearer_token>"
 ```
 
-### Other clients (mcp.json)
-
-Create or update your `mcp.json` configuration file:
+### mcp.json
 
 ```json
 {
@@ -136,80 +131,8 @@ Create or update your `mcp.json` configuration file:
 }
 ```
 
-Replace `<your_bearer_token>` with the Bearer Token generated by `moose generate hash-token`.
-
-## Troubleshooting
-
-### Port Already in Use
-
-If port 4000 is already in use, update `packages/moosestack-service/moose.config.toml`:
-
-```toml
-[http_server_config]
-port = 4001
-```
-
-### "MCP_SERVER_URL environment variable is not set"
-
-This is pre-configured in `packages/web-app/.env.development` for local dev. If you've deleted that file, recreate it:
-
-```dotenv
-MCP_SERVER_URL=http://localhost:4000
-```
-
-### "Unauthorized" or 401 Errors
-
-- Verify `MCP_API_KEY` in `packages/moosestack-service/.env.local` matches the hash from `moose generate hash-token`
-- Confirm `MCP_API_TOKEN` in `packages/web-app/.env.local` is the Bearer Token (not the hash)
-- Check Authorization headers in network requests
-
-### CORS Errors
-
-- Ensure the chat UI calls `/api/chat` (same-origin)
-- Backend requests to MooseStack use server-side Bearer token
-
-### Chat Panel Missing
-
-- Check browser console for errors
-- Verify `ChatLayoutWrapper` wraps the app in `layout.tsx`
-- Confirm shadcn/ui components are installed
-
-### "ANTHROPIC_API_KEY not set"
-
-- Add your key to `packages/web-app/.env.local`
-- Restart the Next.js dev server (env vars load on startup)
-
-### TypeScript Errors
-
-Make sure all dependencies are installed:
-
-```bash
-pnpm install
-```
-
-## Extending This Template
-
-### Adding More Tools
-
-Register additional tools in `packages/moosestack-service/app/apis/mcp.ts` using `server.registerTool()`. Each tool needs a name, title, description, input/output schemas (using Zod), and an async handler function.
-
-### Adding More Data Models
-
-Create additional data models in `packages/moosestack-service/app/ingest/models.ts` by defining interfaces and creating OlapTable instances.
-
-## Security Features
-
-This template implements several security measures for safe database querying:
-
-- **Readonly SQL Queries**: enforced by the ClickHouse client. For additional safety, you can also provision a [read-only ClickHouse user](https://clickhouse.com/docs/en/operations/settings/permissions-for-queries)
-- **Row Limiting**: Results are capped at a default of 100 rows, configurable up to 1000
-- **Error Handling**: Security errors returned through MCP protocol without exposing internals
-
-Before deploying to production, consider adding rate limiting, query timeouts, audit logging, IP whitelisting, and TLS/HTTPS.
-
 ## Learn More
 
 - [Chat in Your App Tutorial](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial)
 - [MooseStack Documentation](https://docs.fiveonefour.com)
 - [Model Context Protocol](https://modelcontextprotocol.io)
-- [MCP SDK (@modelcontextprotocol/sdk)](https://github.com/modelcontextprotocol/typescript-sdk)
