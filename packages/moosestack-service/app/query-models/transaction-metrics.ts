@@ -35,11 +35,7 @@ export const transactionMetrics = defineQueryModel({
       column: "region",
       description: "Geographic region (NA-East, NA-West, EU-West, EU-Central, APAC, LATAM)",
     },
-    status: {
-      column: "status",
-      description: "Transaction lifecycle status (pending, completed, failed, refunded)",
-    },
-    currency: {
+currency: {
       column: "currency",
       description: "ISO currency code (USD, EUR, GBP)",
     },
@@ -97,6 +93,16 @@ export const transactionMetrics = defineQueryModel({
       as: "pendingTransactions",
       description: "Count of pending transactions",
     },
+    refundedAmount: {
+      agg: sql`sumIf(totalAmount, status = 'refunded')`,
+      as: "refundedAmount",
+      description: "Total dollar amount of refunded transactions",
+    },
+    pendingAmount: {
+      agg: sql`sumIf(totalAmount, status = 'pending')`,
+      as: "pendingAmount",
+      description: "Total dollar amount of pending transactions",
+    },
     avgTransactionAmount: {
       agg: sql`avgIf(totalAmount, status = 'completed')`,
       as: "avgTransactionAmount",
@@ -115,12 +121,7 @@ export const transactionMetrics = defineQueryModel({
       operators: ["eq", "in"] as const,
       description: "Filter by geographic region",
     },
-    status: {
-      column: "status",
-      operators: ["eq", "in"] as const,
-      description: "Filter by transaction status (pending, completed, failed, refunded)",
-    },
-    currency: {
+currency: {
       column: "currency",
       operators: ["eq", "in"] as const,
       description: "Filter by currency code (USD, EUR, GBP)",
