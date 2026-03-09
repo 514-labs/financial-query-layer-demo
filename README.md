@@ -9,7 +9,7 @@ Companion demo for the blog post [Define Once, Use Everywhere](https://docs.five
 
 | Without query layer ([`7da601e`](https://github.com/514-labs/financial-query-layer-demo/tree/7da601e)) | With query layer |
 |---|---|
-| <img src="bad-prompt.gif" alt="Vibe SQL gets revenue wrong" width="400"> | <img src="good-prompt.gif" alt="Query layer gets it right" width="400"> |
+| <img src="bad-prompt.gif" alt="Vibe SQL gets revenue wrong" width="465"> | <img src="good-prompt.gif" alt="Query layer gets it right" width="465"> |
 | AI generates SQL against raw tables — misses `WHERE status = 'completed'`, inflating revenue. Dashboard and chat show different numbers. | Revenue is defined once as `sumIf(totalAmount, status = 'completed')`. Dashboard, chat, and any future surface all use the same metric definition. |
 
 ## Quickstart
