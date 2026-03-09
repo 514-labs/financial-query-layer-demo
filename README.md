@@ -1,52 +1,21 @@
 # Financial Query Layer Demo
 
-A financial services data surface built with [MooseStack](https://docs.fiveonefour.com) and [MCP](https://modelcontextprotocol.io). Two ways to access the same data:
+A financial services data surface with two access patterns over the same ClickHouse data:
 
-1. **MCP** — AI chat with free SQL generation against ClickHouse via the Model Context Protocol
-2. **Dashboard** — hand-crafted Express API endpoints powering a Next.js frontend with revenue metrics
+1. **MCP** — AI chat with free SQL generation via the Model Context Protocol
+2. **Dashboard** — hand-crafted Express API endpoints powering a Next.js revenue dashboard
 
-This is a companion demo for the blog post [Define Once, Use Everywhere](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial).
+Companion demo for the blog post [Define Once, Use Everywhere](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial). Built with [MooseStack](https://docs.fiveonefour.com).
 
-## Architecture
+## The Problem: Vibe SQL Gets Revenue Wrong
 
-```text
-┌─────────────────────────────────────────────┐
-│  Next.js Frontend (localhost:3000)           │
-│  ┌───────────────┐  ┌────────────────────┐  │
-│  │  Dashboard     │  │  Chat UI           │  │
-│  │  (hand-written │  │  (MCP client →     │  │
-│  │   SQL via API) │  │   free SQL gen)    │  │
-│  └───────┬───────┘  └────────┬───────────┘  │
-└──────────┼───────────────────┼──────────────┘
-           │                   │
-┌──────────┼───────────────────┼──────────────┐
-│  MooseStack (localhost:4000)                 │
-│  ┌───────┴───────┐  ┌───────┴───────────┐  │
-│  │ /revenue/*    │  │ /tools (MCP)      │  │
-│  │ Express API   │  │ query_clickhouse  │  │
-│  └───────┬───────┘  │ get_data_catalog  │  │
-│          │          └───────┬───────────┘  │
-│          └──────────┬───────┘              │
-│               ClickHouse                    │
-│  ┌──────────────────────────────────────┐  │
-│  │ users | products | transactions      │  │
-│  │ transaction_line_items               │  │
-│  └──────────────────────────────────────┘  │
-└─────────────────────────────────────────────┘
-```
+![Revenue discrepancy between dashboard and AI-generated SQL](bad-prompt.gif)
 
-## Data Model
+The dashboard's revenue endpoint filters transactions to `status = 'completed'` — excluding pending, failed, and refunded transactions. When an AI assistant generates SQL via MCP, it queries the raw `transactions` table without that filter, inflating the revenue figure. Same data, different answers — because the business logic lives in hand-written SQL that the LLM doesn't know about.
 
-Four tables generating data via a Temporal workflow every 15 seconds:
+This is the core motivation for a **semantic layer**: define business metrics once (e.g. "revenue = completed transactions only") and expose them through both the dashboard API and MCP tools, so every consumer gets the same answer.
 
-| Table | Purpose |
-|---|---|
-| `users` | Customer dimension (name, email, region, plan) |
-| `products` | Product catalog (name, category, price) |
-| `transactions` | Financial headers (userId, status, region, totalAmount) |
-| `transaction_line_items` | Line-item detail (productId, quantity, unitPrice, amount) |
-
-## Getting Started
+## Quickstart
 
 ### Prerequisites
 
@@ -71,13 +40,13 @@ cd packages/moosestack-service
 moose generate hash-token
 ```
 
-Set environment variables:
+Set environment variables (`moose generate hash-token` outputs a key pair — hash goes to backend, token goes to frontend):
 
 | Variable | File | Value |
 |---|---|---|
-| `MCP_API_KEY` | `packages/moosestack-service/.env.local` | Hash from `moose generate hash-token` |
-| `MCP_API_TOKEN` | `packages/web-app/.env.local` | Bearer Token from `moose generate hash-token` |
-| `ANTHROPIC_API_KEY` | `packages/web-app/.env.local` | Your Anthropic API key |
+| `MCP_API_KEY` | `packages/moosestack-service/.env.local` | `ENV API Key` (hash) from `moose generate hash-token` |
+| `MCP_API_TOKEN` | `packages/web-app/.env.local` | `Bearer Token` from `moose generate hash-token` |
+| `ANTHROPIC_API_KEY` | `packages/web-app/.env.local` | Your [Anthropic API key](https://console.anthropic.com/) |
 
 ### Run
 
@@ -88,16 +57,17 @@ pnpm dev:web      # Frontend only
 ```
 
 - Dashboard: http://localhost:3000
-- MooseStack API: http://localhost:4000
-- Revenue endpoint: http://localhost:4000/revenue/by-region
+- Revenue API: http://localhost:4000/revenue/by-region
 - MCP endpoint: http://localhost:4000/tools
 - Temporal UI: http://localhost:8080
 
 ### Ports
 
+Make sure the following ports are free before running `pnpm dev`. Change them in `packages/moosestack-service/moose.config.toml` if needed.
+
 | Service | Port |
 |---|---|
-| Next.js | 3000 |
+| Next.js web app | 3000 |
 | MooseStack HTTP/MCP | 4000 |
 | Management API | 5001 |
 | Temporal | 7233 |
@@ -105,9 +75,99 @@ pnpm dev:web      # Frontend only
 | ClickHouse HTTP | 18123 |
 | ClickHouse native | 9000 |
 
+## Data Architecture
+
+```text
+Temporal Workflow (@every 15s)
+  │
+  │  generates fake data via direct ClickHouse inserts
+  │
+  ▼
+┌──────────────────────────────────────────┐
+│  ClickHouse Tables                       │
+│  users · products · transactions         │
+│  transaction_line_items                  │
+└──────────┬───────────────┬───────────────┘
+           │               │
+     ┌─────┴─────┐   ┌────┴──────────┐
+     │ /revenue  │   │ /tools (MCP)  │
+     │ Express   │   │ query_clickhouse
+     │ hand-     │   │ get_data_catalog
+     │ written   │   │ free SQL gen  │
+     │ SQL       │   └────┬──────────┘
+     └─────┬─────┘        │
+           │              │
+     ┌─────┴─────┐   ┌───┴───────┐
+     │ Dashboard │   │ Chat UI   │
+     │ Next.js   │   │ Next.js   │
+     └───────────┘   └───────────┘
+```
+
+**Workflow → Tables**: A Temporal workflow runs every 15 seconds, generating ~1k transactions and ~5k line items per run with randomized volumes, weighted status distributions, and price variation.
+
+**Tables → API**: The `/revenue` Express endpoint queries ClickHouse with hand-written SQL. The dashboard calls this endpoint and renders revenue metrics with info tooltips showing the exact SQL.
+
+**Tables → MCP**: The `/tools` MCP server exposes `query_clickhouse` (free-form read-only SQL) and `get_data_catalog` (schema discovery). The chat UI connects as an MCP client — the LLM generates SQL on the fly.
+
+## Schema Design
+
+### users
+
+| Column | Type | Notes |
+|---|---|---|
+| userId | String | |
+| createdAt | DateTime | |
+| name | String | |
+| email | String | |
+| region | LowCardinality(String) | Geographic dimension |
+| plan | Enum8 | free / pro / enterprise |
+
+`ORDER BY (region, userId)`
+
+### products
+
+| Column | Type | Notes |
+|---|---|---|
+| productId | String | |
+| name | String | |
+| category | LowCardinality(String) | Product dimension |
+| unitPrice | Decimal(10,2) | List price in USD |
+| createdAt | DateTime | |
+
+`ORDER BY (category, productId)`
+
+### transactions
+
+| Column | Type | Notes |
+|---|---|---|
+| transactionId | String | |
+| timestamp | DateTime | |
+| userId | String | FK to users |
+| status | Enum8 | pending / completed / failed / refunded |
+| region | LowCardinality(String) | Geographic dimension |
+| currency | LowCardinality(String) | USD / EUR / GBP |
+| paymentMethod | LowCardinality(String) | credit_card / debit_card / etc. |
+| totalAmount | Decimal(10,2) | Sum of line items |
+
+`ORDER BY (userId, timestamp)` — optimized for per-user lookups over time.
+
+### transaction_line_items
+
+| Column | Type | Notes |
+|---|---|---|
+| lineItemId | String | |
+| transactionId | String | FK to transactions |
+| timestamp | DateTime | Inherited from parent |
+| productId | String | FK to products |
+| quantity | Float64 | Units purchased |
+| unitPrice | Decimal(10,2) | Price at time of purchase |
+| amount | Decimal(10,2) | quantity × unitPrice |
+
+`ORDER BY (transactionId, timestamp)` — optimized for fetching all items in a transaction.
+
 ## Connecting MCP Clients
 
-The MCP server at `/tools` exposes `query_clickhouse` and `get_data_catalog` tools. Connect any MCP client:
+The MCP server at `/tools` exposes `query_clickhouse` and `get_data_catalog`. Connect any MCP client:
 
 ### Claude Code
 
@@ -115,7 +175,7 @@ The MCP server at `/tools` exposes `query_clickhouse` and `get_data_catalog` too
 claude mcp add --transport http moose-tools http://localhost:4000/tools --header "Authorization: Bearer <your_bearer_token>"
 ```
 
-### mcp.json
+### mcp.json (Cursor, Claude Desktop, etc.)
 
 ```json
 {
@@ -130,6 +190,27 @@ claude mcp add --transport http moose-tools http://localhost:4000/tools --header
   }
 }
 ```
+
+Replace `<your_bearer_token>` with the Bearer Token from `moose generate hash-token`.
+
+## Troubleshooting
+
+### Port Already in Use
+
+Update `packages/moosestack-service/moose.config.toml`:
+
+```toml
+[http_server_config]
+port = 4001
+```
+
+### "ANTHROPIC_API_KEY not set"
+
+Add your key to `packages/web-app/.env.local` and restart the Next.js dev server.
+
+### CORS Errors
+
+Ensure the MooseStack backend is running — the `/revenue` API includes CORS middleware for cross-origin requests from the frontend.
 
 ## Learn More
 
