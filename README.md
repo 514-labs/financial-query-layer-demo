@@ -108,6 +108,8 @@ Compare with the [pre-query-layer architecture (`7da601e`)](https://github.com/5
 
 The report builder discovers its UI dynamically from the query model via `/transaction/schema` — adding a new metric, dimension, or filter to `transactionMetrics` in [`transaction-metrics.ts`](packages/moosestack-service/app/query-models/transaction-metrics.ts) automatically makes it available in the report builder with no frontend changes. Filter values (e.g. regions, currencies) are fetched as `DISTINCT` values from ClickHouse at schema load time.
 
+<img src="report-builder.png" alt="Report builder UI with metric and dimension chips, filter toggles, and results table" width="700">
+
 **Query Layer → MCP**: The `/tools` MCP server registers `query_transaction_metrics` via `registerModelTools()`. The AI chat calls this tool instead of writing free-form SQL, ensuring it uses the same metric definitions as the dashboard.
 
 ## Schema Design
