@@ -108,6 +108,11 @@ currency: {
       as: "avgTransactionAmount",
       description: "Average transaction amount (completed only)",
     },
+    medianTransactionAmount: {
+      agg: sql`medianIf(totalAmount, status = 'completed')`,
+      as: "medianTransactionAmount",
+      description: "Median transaction amount (completed only)",
+    },
     regionCount: {
       agg: sql`uniqExactIf(region, status = 'completed')`,
       as: "regionCount",

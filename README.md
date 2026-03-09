@@ -112,6 +112,31 @@ The report builder discovers its UI dynamically from the query model via `/trans
 
 **Query Layer → MCP**: The `/tools` MCP server registers `query_transaction_metrics` via `registerModelTools()`. The AI chat calls this tool instead of writing free-form SQL, ensuring it uses the same metric definitions as the dashboard.
 
+## Adding a Metric with AI
+
+Because the query model is the single source of truth, adding a new metric is a one-line change — and with the MooseStack dev harness, you can ask an AI coding agent to do it:
+
+> **Prompt:** "add a metric for median transaction amounts"
+
+The agent adds the metric to `transaction-metrics.ts`:
+
+```typescript
+medianTransactionAmount: {
+  agg: sql`medianIf(totalAmount, status = 'completed')`,
+  as: "medianTransactionAmount",
+  description: "Median transaction amount (completed only)",
+},
+```
+
+That single addition propagates to all four consumers automatically:
+
+1. **MCP tool** — `query_transaction_metrics` now accepts `medianTransactionAmount` as a metric
+2. **Schema endpoint** — `/transaction/schema` returns it in the metrics list
+3. **REST API** — `/transaction/metrics?metrics=medianTransactionAmount` works immediately
+4. **Report builder UI** — the new metric appears as a selectable chip with no frontend changes
+
+https://github.com/user-attachments/assets/df03f8c1-0557-4238-977c-fda09842e215
+
 ## Schema Design
 
 See [SCHEMA.md](SCHEMA.md) for full table schemas, column types, and ordering keys.
