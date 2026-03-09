@@ -47,7 +47,7 @@ erDiagram
     products ||--o{ transaction_line_items : "productId"
 ```
 
-## users
+## [users](packages/moosestack-service/app/ingest/models.ts#L12)
 
 <details>
 <summary>MooseStack definition</summary>
@@ -83,20 +83,24 @@ export const UserTable = new OlapTable<User>("users", {
 </details>
 
 <details>
-<summary>ClickHouse DESCRIBE TABLE</summary>
+<summary>DESCRIBE TABLE users</summary>
 
-| Column | Type | Comment |
-|---|---|---|
-| userId | String | Unique identifier for the user (UUID). |
-| createdAt | DateTime('UTC') | Account creation timestamp. |
-| name | String | Full display name. |
-| email | String | Email address (unique per user). |
-| region | LowCardinality(String) | Geographic region: NA-East, NA-West, EU-West, EU-Central, APAC, LATAM. |
-| plan | LowCardinality(String) | Subscription tier. |
+```sql
+DESCRIBE TABLE users;
+
+┌─name──────┬─type──────────────────┬─comment──────────────────────────────────────────────────────────────────┐
+│ userId    │ String                │ Unique identifier for the user (UUID).                                   │
+│ createdAt │ DateTime('UTC')       │ Account creation timestamp.                                              │
+│ name      │ String                │ Full display name.                                                       │
+│ email     │ String                │ Email address (unique per user).                                         │
+│ region    │ LowCardinality(String)│ Geographic region: NA-East, NA-West, EU-West, EU-Central, APAC, LATAM.   │
+│ plan      │ LowCardinality(String)│ Subscription tier.                                                       │
+└───────────┴───────────────────────┴──────────────────────────────────────────────────────────────────────────┘
+```
 
 </details>
 
-## products
+## [products](packages/moosestack-service/app/ingest/models.ts#L43)
 
 <details>
 <summary>MooseStack definition</summary>
@@ -129,19 +133,23 @@ export const ProductTable = new OlapTable<Product>("products", {
 </details>
 
 <details>
-<summary>ClickHouse DESCRIBE TABLE</summary>
+<summary>DESCRIBE TABLE products</summary>
 
-| Column | Type | Comment |
-|---|---|---|
-| productId | String | Unique identifier for the product (UUID). |
-| name | String | Human-readable product name. |
-| category | LowCardinality(String) | Product category: Electronics, Software, Services, Hardware, Consulting. |
-| unitPrice | Decimal(10, 2) | List price in USD. |
-| createdAt | DateTime('UTC') | When the product was added to the catalog. |
+```sql
+DESCRIBE TABLE products;
+
+┌─name──────┬─type──────────────────┬─comment──────────────────────────────────────────────────────────────────┐
+│ productId │ String                │ Unique identifier for the product (UUID).                                │
+│ name      │ String                │ Human-readable product name.                                             │
+│ category  │ LowCardinality(String)│ Product category: Electronics, Software, Services, Hardware, Consulting. │
+│ unitPrice │ Decimal(10, 2)        │ List price in USD.                                                       │
+│ createdAt │ DateTime('UTC')       │ When the product was added to the catalog.                               │
+└───────────┴───────────────────────┴──────────────────────────────────────────────────────────────────────────┘
+```
 
 </details>
 
-## transactions
+## [transactions](packages/moosestack-service/app/ingest/models.ts#L77)
 
 <details>
 <summary>MooseStack definition</summary>
@@ -191,22 +199,26 @@ export const TransactionTable = new OlapTable<Transaction>("transactions", {
 </details>
 
 <details>
-<summary>ClickHouse DESCRIBE TABLE</summary>
+<summary>DESCRIBE TABLE transactions</summary>
 
-| Column | Type | Comment |
-|---|---|---|
-| transactionId | String | Unique identifier for the transaction (UUID). |
-| timestamp | DateTime('UTC') | When the transaction occurred. |
-| userId | String | Foreign key to `users.userId`. |
-| status | LowCardinality(String) | Transaction lifecycle status. |
-| region | LowCardinality(String) | Geographic region (denormalized from user for efficient filtering). |
-| currency | LowCardinality(String) | ISO currency code. |
-| paymentMethod | LowCardinality(String) | Payment instrument used. |
-| totalAmount | Decimal(10, 2) | Sum of all line item amounts for this transaction (in `currency`). |
+```sql
+DESCRIBE TABLE transactions;
+
+┌─name──────────┬─type──────────────────┬─comment──────────────────────────────────────────────────────────────┐
+│ transactionId │ String                │ Unique identifier for the transaction (UUID).                        │
+│ timestamp     │ DateTime('UTC')       │ When the transaction occurred.                                       │
+│ userId        │ String                │ Foreign key to users.userId.                                         │
+│ status        │ LowCardinality(String)│ Transaction lifecycle status.                                        │
+│ region        │ LowCardinality(String)│ Geographic region (denormalized from user for efficient filtering).   │
+│ currency      │ LowCardinality(String)│ ISO currency code.                                                   │
+│ paymentMethod │ LowCardinality(String)│ Payment instrument used.                                             │
+│ totalAmount   │ Decimal(10, 2)        │ Sum of all line item amounts for this transaction.                   │
+└───────────────┴───────────────────────┴──────────────────────────────────────────────────────────────────────┘
+```
 
 </details>
 
-## transaction_line_items
+## [transaction_line_items](packages/moosestack-service/app/ingest/models.ts#L119)
 
 <details>
 <summary>MooseStack definition</summary>
@@ -247,16 +259,20 @@ export const TransactionLineItemTable = new OlapTable<TransactionLineItem>(
 </details>
 
 <details>
-<summary>ClickHouse DESCRIBE TABLE</summary>
+<summary>DESCRIBE TABLE transaction_line_items</summary>
 
-| Column | Type | Comment |
-|---|---|---|
-| lineItemId | String | Unique identifier for the line item (UUID). |
-| transactionId | String | Foreign key to `transactions.transactionId`. |
-| timestamp | DateTime('UTC') | Inherited from parent transaction. |
-| productId | String | Foreign key to `products.productId`. |
-| quantity | Float64 | Units purchased. |
-| unitPrice | Decimal(10, 2) | Price per unit at time of purchase (may differ from catalog price). |
-| amount | Decimal(10, 2) | Total for this line: quantity × unitPrice. |
+```sql
+DESCRIBE TABLE transaction_line_items;
+
+┌─name──────────┬─type──────────┬─comment──────────────────────────────────────────────────────────────────┐
+│ lineItemId    │ String        │ Unique identifier for the line item (UUID).                              │
+│ transactionId │ String        │ Foreign key to transactions.transactionId.                               │
+│ timestamp     │ DateTime('UTC')│ Inherited from parent transaction.                                      │
+│ productId     │ String        │ Foreign key to products.productId.                                       │
+│ quantity      │ Float64       │ Units purchased.                                                         │
+│ unitPrice     │ Decimal(10, 2)│ Price per unit at time of purchase (may differ from catalog price).      │
+│ amount        │ Decimal(10, 2)│ Total for this line: quantity × unitPrice.                               │
+└───────────────┴───────────────┴──────────────────────────────────────────────────────────────────────────┘
+```
 
 </details>
