@@ -1,25 +1,23 @@
 import express from "express";
 import cors from "cors";
-import { WebApp, getMooseUtils } from "@514labs/moose-lib";
+import { WebApp, getMooseUtils, buildQuery } from "@514labs/moose-lib";
+import { transactionMetrics } from "../query-models/transaction-metrics";
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Dashboard handler — hand-written SQL
+// Dashboard handler — powered by the query layer
 app.get("/by-region", async (_req, res) => {
   const { client } = await getMooseUtils();
 
   try {
-    const result = await client.query.client.query({
-      query: `SELECT region, sum(totalAmount) as revenue
-              FROM transactions
-              WHERE status = 'completed'
-              GROUP BY region
-              ORDER BY revenue DESC`,
-      format: "JSONEachRow",
-    });
-    const data = await result.json();
+    const data = await buildQuery(transactionMetrics)
+      .metrics(["revenue"])
+      .dimensions(["region"])
+      .orderBy(["revenue", "DESC"])
+      .execute(client.query);
+
     res.json({ success: true, data });
   } catch (error) {
     res.status(500).json({

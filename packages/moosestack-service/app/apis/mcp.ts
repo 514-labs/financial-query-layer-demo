@@ -16,8 +16,15 @@ import express from "express";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod/v3";
-import { WebApp, getMooseUtils, MooseUtils } from "@514labs/moose-lib";
+import {
+  WebApp,
+  getMooseUtils,
+  MooseUtils,
+  registerModelTools,
+  type QueryModelBase,
+} from "@514labs/moose-lib";
 import { createAuthMiddleware } from "@514labs/express-pbkdf2-api-key-auth";
+import { transactionMetrics } from "../query-models/transaction-metrics";
 
 function clickhouseReadonlyQuery(
   client: MooseUtils["client"],
@@ -424,6 +431,17 @@ const serverFactory = (mooseUtils: MooseUtils) => {
         };
       }
     },
+  );
+
+  // Register query model tools — each named model becomes an MCP tool
+  // with auto-generated schema, SQL generation, and readonly execution.
+  // Cast needed: defineQueryModel() returns a QueryModel with a narrower toSql
+  // signature than QueryModelBase expects. This is a known moose-lib type gap —
+  // the docs confirm structural compatibility.
+  registerModelTools(
+    server,
+    [transactionMetrics] as unknown as QueryModelBase[],
+    mooseUtils.client.query,
   );
 
   return server;
