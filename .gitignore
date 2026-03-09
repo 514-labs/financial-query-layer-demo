@@ -4,3 +4,7 @@ dist
 coverage
 .ts-node
 
+# Local environment files with secrets
+.env.local
+.env*.local
+
