@@ -7,6 +7,14 @@ A financial services data surface with two access patterns over the same ClickHo
 
 Companion demo for the blog post [Define Once, Use Everywhere](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial). Built with [MooseStack](https://docs.fiveonefour.com).
 
+## The Problem: Vibe SQL Gets Revenue Wrong
+
+![Revenue discrepancy between dashboard and AI-generated SQL](bad-prompt.gif)
+
+The dashboard's revenue endpoint filters transactions to `status = 'completed'` — excluding pending, failed, and refunded transactions. When an AI assistant generates SQL via MCP, it queries the raw `transactions` table without that filter, inflating the revenue figure. Same data, different answers — because the business logic lives in hand-written SQL that the LLM doesn't know about.
+
+This is the core motivation for a **semantic layer**: define business metrics once (e.g. "revenue = completed transactions only") and expose them through both the dashboard API and MCP tools, so every consumer gets the same answer.
+
 ## Quickstart
 
 ### Prerequisites
