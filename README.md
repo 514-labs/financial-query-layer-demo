@@ -7,7 +7,7 @@ A financial services data surface with two access patterns over the same ClickHo
 
 Companion demo for the blog post [Define Once, Use Everywhere](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial). Built with [MooseStack](https://docs.fiveonefour.com).
 
-| Without query layer | With query layer |
+| Without query layer ([`7da601e`](https://github.com/514-labs/financial-query-layer-demo/tree/7da601e)) | With query layer |
 |---|---|
 | ![Vibe SQL gets revenue wrong](bad-prompt.gif) | ![Query layer gets it right](good-prompt.gif) |
 | AI generates SQL against raw tables — misses `WHERE status = 'completed'`, inflating revenue. Dashboard and chat show different numbers. | Revenue is defined once as `sumIf(totalAmount, status = 'completed')`. Dashboard, chat, and any future surface all use the same metric definition. |
