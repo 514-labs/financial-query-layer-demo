@@ -84,15 +84,25 @@ Temporal Workflow (@every 15s)
 │  ClickHouse Tables                       │
 │  users · products · transactions         │
 │  transaction_line_items                  │
-└──────────┬───────────────┬───────────────┘
-           │               │
-     ┌─────┴─────┐   ┌────┴──────────┐
+└──────────────────┬───────────────────────┘
+                   │
+     ┌─────────────┴─────────────┐
+     │  Query Layer               │
+     │  defineQueryModel()        │
+     │  transactionMetrics        │
+     │  revenue = sumIf(          │
+     │    totalAmount,            │
+     │    status = 'completed')   │
+     └─────┬───────────┬─────────┘
+           │           │
+     buildQuery()  registerModelTools()
+           │           │
+     ┌─────┴─────┐   ┌┴──────────────┐
      │ /revenue  │   │ /tools (MCP)  │
-     │ Express   │   │ query_clickhouse
-     │ hand-     │   │ get_data_catalog
-     │ written   │   │ free SQL gen  │
-     │ SQL       │   └────┬──────────┘
-     └─────┬─────┘        │
+     │ Express   │   │ query_         │
+     │ API       │   │ transaction_   │
+     │           │   │ metrics        │
+     └─────┬─────┘   └────┬──────────┘
            │              │
      ┌─────┴─────┐   ┌───┴───────┐
      │ Dashboard │   │ Chat UI   │
@@ -102,9 +112,11 @@ Temporal Workflow (@every 15s)
 
 **Workflow → Tables**: A Temporal workflow runs every 15 seconds, generating ~1k transactions and ~5k line items per run with randomized volumes, weighted status distributions, and price variation.
 
-**Tables → API**: The `/revenue` Express endpoint queries ClickHouse with hand-written SQL. The dashboard calls this endpoint and renders revenue metrics with info tooltips showing the exact SQL.
+**Tables → Query Layer**: The `transactionMetrics` query model defines revenue as `sumIf(totalAmount, status = 'completed')` — the single source of truth for all metric calculations.
 
-**Tables → MCP**: The `/tools` MCP server exposes `query_clickhouse` (free-form read-only SQL) and `get_data_catalog` (schema discovery). The chat UI connects as an MCP client — the LLM generates SQL on the fly.
+**Query Layer → API**: The `/revenue` Express endpoint uses `buildQuery(transactionMetrics)` to query ClickHouse. The dashboard renders the results with tooltips showing the metric definition.
+
+**Query Layer → MCP**: The `/tools` MCP server registers `query_transaction_metrics` via `registerModelTools()`. The AI chat calls this tool instead of writing free-form SQL, ensuring it uses the same metric definitions as the dashboard.
 
 ## Schema Design
 
