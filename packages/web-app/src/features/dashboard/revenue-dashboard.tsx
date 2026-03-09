@@ -14,11 +14,24 @@ interface RegionRevenue {
   revenue: number;
 }
 
-const REVENUE_SQL = `SELECT region, sum(totalAmount) as revenue
-FROM transactions
-WHERE status = 'completed'
-GROUP BY region
-ORDER BY revenue DESC`;
+// Tooltip content mirrors the query model definition in
+// packages/moosestack-service/app/query-models/transaction-metrics.ts
+const METRIC_REVENUE = `query_transaction_metrics
+metric: revenue
+  sumIf(totalAmount, status = 'completed')
+dimension: region
+orderBy: revenue DESC`;
+
+const METRIC_TOP_REGION = `query_transaction_metrics
+metric: revenue
+  sumIf(totalAmount, status = 'completed')
+dimension: region
+orderBy: revenue DESC
+limit: 1`;
+
+const METRIC_REGION_COUNT = `query_transaction_metrics
+metric: regionCount
+  uniqExactIf(region, status = 'completed')`;
 
 export function RevenueDashboard() {
   const [data, setData] = useState<RegionRevenue[]>([]);
@@ -77,21 +90,21 @@ export function RevenueDashboard() {
         <MetricCard
           title="Total Revenue"
           value={formatCurrency(totalRevenue)}
-          sql={REVENUE_SQL}
+          sql={METRIC_REVENUE}
           subtitle="Completed transactions, all regions"
         />
         {topRegion && (
           <MetricCard
             title="Top Region"
             value={topRegion.region}
-            sql={REVENUE_SQL}
+            sql={METRIC_TOP_REGION}
             subtitle={formatCurrency(topRegion.revenue)}
           />
         )}
         <MetricCard
           title="Regions"
           value={data.length.toString()}
-          sql={REVENUE_SQL}
+          sql={METRIC_REGION_COUNT}
           subtitle="With completed transactions"
         />
       </div>
@@ -104,7 +117,7 @@ export function RevenueDashboard() {
               <Info className="h-4 w-4 text-muted-foreground cursor-help" />
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-sm">
-              <pre className="text-xs font-mono whitespace-pre-wrap">{REVENUE_SQL}</pre>
+              <pre className="text-xs font-mono whitespace-pre-wrap">{METRIC_REVENUE}</pre>
             </TooltipContent>
           </Tooltip>
         </div>

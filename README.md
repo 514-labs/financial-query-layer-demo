@@ -7,13 +7,10 @@ A financial services data surface with two access patterns over the same ClickHo
 
 Companion demo for the blog post [Define Once, Use Everywhere](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial). Built with [MooseStack](https://docs.fiveonefour.com).
 
-## The Problem: Vibe SQL Gets Revenue Wrong
-
-![Revenue discrepancy between dashboard and AI-generated SQL](bad-prompt.gif)
-
-The dashboard's revenue endpoint filters transactions to `status = 'completed'` — excluding pending, failed, and refunded transactions. When an AI assistant generates SQL via MCP, it queries the raw `transactions` table without that filter, inflating the revenue figure. Same data, different answers — because the business logic lives in hand-written SQL that the LLM doesn't know about.
-
-This is the core motivation for a **semantic layer**: define business metrics once (e.g. "revenue = completed transactions only") and expose them through both the dashboard API and MCP tools, so every consumer gets the same answer.
+| Without query layer ([`7da601e`](https://github.com/514-labs/financial-query-layer-demo/tree/7da601e)) | With query layer |
+|---|---|
+| <img src="bad-prompt.gif" alt="Vibe SQL gets revenue wrong" width="465"> | <img src="good-prompt.gif" alt="Query layer gets it right" width="465"> |
+| AI generates SQL against raw tables — misses `WHERE status = 'completed'`, inflating revenue. Dashboard and chat show different numbers. | Revenue is defined once as `sumIf(totalAmount, status = 'completed')`. Dashboard, chat, and any future surface all use the same metric definition. |
 
 ## Quickstart
 
@@ -77,93 +74,36 @@ Make sure the following ports are free before running `pnpm dev`. Change them in
 
 ## Data Architecture
 
-```text
-Temporal Workflow (@every 15s)
-  │
-  │  generates fake data via direct ClickHouse inserts
-  │
-  ▼
-┌──────────────────────────────────────────┐
-│  ClickHouse Tables                       │
-│  users · products · transactions         │
-│  transaction_line_items                  │
-└──────────┬───────────────┬───────────────┘
-           │               │
-     ┌─────┴─────┐   ┌────┴──────────┐
-     │ /revenue  │   │ /tools (MCP)  │
-     │ Express   │   │ query_clickhouse
-     │ hand-     │   │ get_data_catalog
-     │ written   │   │ free SQL gen  │
-     │ SQL       │   └────┬──────────┘
-     └─────┬─────┘        │
-           │              │
-     ┌─────┴─────┐   ┌───┴───────┐
-     │ Dashboard │   │ Chat UI   │
-     │ Next.js   │   │ Next.js   │
-     └───────────┘   └───────────┘
+```mermaid
+graph TD
+    W["Temporal Workflow<br/><i>@every 15s</i>"]
+    W -->|"generates fake data via<br/>direct ClickHouse inserts"| CH
+
+    CH["ClickHouse Tables<br/>users · products · transactions<br/>transaction_line_items"]
+    CH --> QL
+
+    QL["Query Layer<br/><code>defineQueryModel()</code><br/><code>transactionMetrics</code><br/><code>revenue = sumIf(totalAmount, status = 'completed')</code>"]
+
+    QL -->|"buildQuery()"| REV["/revenue<br/>Express API"]
+    QL -->|"registerModelTools()"| MCP["/tools (MCP)<br/>query_transaction_metrics"]
+
+    REV --> DASH["Dashboard<br/>Next.js"]
+    MCP --> CHAT["Chat UI<br/>Next.js"]
 ```
+
+Compare with the [pre-query-layer architecture (`7da601e`)](https://github.com/514-labs/financial-query-layer-demo/blob/7da601e/README.md#data-architecture), where the dashboard used hand-written SQL and the MCP server exposed free-form `query_clickhouse` with no shared metric definitions.
 
 **Workflow → Tables**: A Temporal workflow runs every 15 seconds, generating ~1k transactions and ~5k line items per run with randomized volumes, weighted status distributions, and price variation.
 
-**Tables → API**: The `/revenue` Express endpoint queries ClickHouse with hand-written SQL. The dashboard calls this endpoint and renders revenue metrics with info tooltips showing the exact SQL.
+**Tables → Query Layer**: The `transactionMetrics` query model defines revenue as `sumIf(totalAmount, status = 'completed')` — the single source of truth for all metric calculations.
 
-**Tables → MCP**: The `/tools` MCP server exposes `query_clickhouse` (free-form read-only SQL) and `get_data_catalog` (schema discovery). The chat UI connects as an MCP client — the LLM generates SQL on the fly.
+**Query Layer → API**: The `/revenue` Express endpoint uses `buildQuery(transactionMetrics)` to query ClickHouse. The dashboard renders the results with tooltips showing the metric definition.
+
+**Query Layer → MCP**: The `/tools` MCP server registers `query_transaction_metrics` via `registerModelTools()`. The AI chat calls this tool instead of writing free-form SQL, ensuring it uses the same metric definitions as the dashboard.
 
 ## Schema Design
 
-### users
-
-| Column | Type | Notes |
-|---|---|---|
-| userId | String | |
-| createdAt | DateTime | |
-| name | String | |
-| email | String | |
-| region | LowCardinality(String) | Geographic dimension |
-| plan | Enum8 | free / pro / enterprise |
-
-`ORDER BY (region, userId)`
-
-### products
-
-| Column | Type | Notes |
-|---|---|---|
-| productId | String | |
-| name | String | |
-| category | LowCardinality(String) | Product dimension |
-| unitPrice | Decimal(10,2) | List price in USD |
-| createdAt | DateTime | |
-
-`ORDER BY (category, productId)`
-
-### transactions
-
-| Column | Type | Notes |
-|---|---|---|
-| transactionId | String | |
-| timestamp | DateTime | |
-| userId | String | FK to users |
-| status | Enum8 | pending / completed / failed / refunded |
-| region | LowCardinality(String) | Geographic dimension |
-| currency | LowCardinality(String) | USD / EUR / GBP |
-| paymentMethod | LowCardinality(String) | credit_card / debit_card / etc. |
-| totalAmount | Decimal(10,2) | Sum of line items |
-
-`ORDER BY (userId, timestamp)` — optimized for per-user lookups over time.
-
-### transaction_line_items
-
-| Column | Type | Notes |
-|---|---|---|
-| lineItemId | String | |
-| transactionId | String | FK to transactions |
-| timestamp | DateTime | Inherited from parent |
-| productId | String | FK to products |
-| quantity | Float64 | Units purchased |
-| unitPrice | Decimal(10,2) | Price at time of purchase |
-| amount | Decimal(10,2) | quantity × unitPrice |
-
-`ORDER BY (transactionId, timestamp)` — optimized for fetching all items in a transaction.
+See [SCHEMA.md](SCHEMA.md) for full table schemas, column types, and ordering keys.
 
 ## Connecting MCP Clients
 
