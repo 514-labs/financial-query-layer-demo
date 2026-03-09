@@ -35,11 +35,7 @@ export const transactionMetrics = defineQueryModel({
       column: "region",
       description: "Geographic region (NA-East, NA-West, EU-West, EU-Central, APAC, LATAM)",
     },
-    status: {
-      column: "status",
-      description: "Transaction lifecycle status (pending, completed, failed, refunded)",
-    },
-    currency: {
+currency: {
       column: "currency",
       description: "ISO currency code (USD, EUR, GBP)",
     },
@@ -125,12 +121,7 @@ export const transactionMetrics = defineQueryModel({
       operators: ["eq", "in"] as const,
       description: "Filter by geographic region",
     },
-    status: {
-      column: "status",
-      operators: ["eq", "in"] as const,
-      description: "Filter by transaction status (pending, completed, failed, refunded)",
-    },
-    currency: {
+currency: {
       column: "currency",
       operators: ["eq", "in"] as const,
       description: "Filter by currency code (USD, EUR, GBP)",
