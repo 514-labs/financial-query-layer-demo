@@ -104,7 +104,9 @@ Compare with the [pre-query-layer architecture (`7da601e`)](https://github.com/5
 
 **Query Layer → Dashboard API**: The `/revenue` Express endpoint uses `buildQuery(transactionMetrics)` to query ClickHouse. The dashboard renders the results with tooltips showing the metric definition.
 
-**Query Layer → Report Builder API**: The `/transaction/metrics` endpoint accepts dynamic `metrics`, `dimensions`, and `filter.*` query params, all resolved through `buildQuery()`. The report builder UI lets users pick any combination of metrics and dimensions interactively.
+**Query Layer → Report Builder API**: The `/transaction/metrics` endpoint accepts dynamic `metrics`, `dimensions`, and `filter.*` query params, all resolved through `buildQuery()`. The report builder UI at [`/builder`](http://localhost:3000/builder) lets users pick any combination of metrics and dimensions interactively.
+
+The report builder discovers its UI dynamically from the query model via `/transaction/schema` — adding a new metric, dimension, or filter to `transactionMetrics` in [`transaction-metrics.ts`](packages/moosestack-service/app/query-models/transaction-metrics.ts) automatically makes it available in the report builder with no frontend changes. Filter values (e.g. regions, currencies) are fetched as `DISTINCT` values from ClickHouse at schema load time.
 
 **Query Layer → MCP**: The `/tools` MCP server registers `query_transaction_metrics` via `registerModelTools()`. The AI chat calls this tool instead of writing free-form SQL, ensuring it uses the same metric definitions as the dashboard.
 
