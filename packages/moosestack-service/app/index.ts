@@ -6,3 +6,4 @@ export * from "./workflows/generate-data";
 
 // Export all APIs (including MCP server)
 export * from "./apis/mcp";
+export * from "./apis/revenue";

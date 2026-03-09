@@ -8,3 +8,6 @@ coverage
 .env.local
 .env*.local
 
+# Demo guide (not part of the template)
+guide.md
+
