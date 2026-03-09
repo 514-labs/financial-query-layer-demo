@@ -74,6 +74,27 @@ function ChipSelector({
 }
 
 // =============================================================================
+// Shared formatting
+// =============================================================================
+
+function formatValue(key: string, value: unknown): string {
+  if (value === null || value === undefined) return "\u2014";
+  if (typeof value === "number") {
+    if (key.toLowerCase().includes("amount") || key.toLowerCase().includes("revenue")) {
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
+    }
+    return value.toLocaleString();
+  }
+  if (value === "") return "(empty)";
+  return String(value);
+}
+
+// =============================================================================
 // Metric Chips
 // =============================================================================
 
@@ -309,23 +330,6 @@ export function SimpleResultsTable({
   const getLabel = (id: string) => getFieldOption(id)?.label ?? id;
   const getDataKey = (id: string) => getFieldOption(id)?.dataKey ?? id;
 
-  const formatValue = (key: string, value: unknown): string => {
-    if (value === null || value === undefined) return "\u2014";
-    if (typeof value === "number") {
-      if (key.toLowerCase().includes("amount") || key.toLowerCase().includes("revenue")) {
-        return new Intl.NumberFormat("en-US", {
-          style: "currency",
-          currency: "USD",
-          minimumFractionDigits: 0,
-          maximumFractionDigits: 0,
-        }).format(value);
-      }
-      return value.toLocaleString();
-    }
-    if (value === "") return "(empty)";
-    return String(value);
-  };
-
   return (
     <div className={cn("rounded-lg border overflow-hidden", className)}>
       <table className="w-full">
@@ -459,8 +463,8 @@ export function ResultsChart({
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-xs font-mono tabular-nums text-muted-foreground w-20 text-right shrink-0">
-                      {val.toLocaleString()}
+                    <span className="text-xs font-mono tabular-nums text-muted-foreground w-28 text-right shrink-0">
+                      {formatValue(m, val)}
                     </span>
                   </div>
                 );
