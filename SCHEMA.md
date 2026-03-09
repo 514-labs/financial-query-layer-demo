@@ -2,6 +2,51 @@
 
 Four tables generating data via a Temporal workflow every 15 seconds.
 
+```mermaid
+erDiagram
+    users {
+        String userId PK
+        DateTime createdAt
+        String name
+        String email
+        LowCardinality_String region
+        Enum8 plan
+    }
+
+    products {
+        String productId PK
+        String name
+        LowCardinality_String category
+        Decimal unitPrice
+        DateTime createdAt
+    }
+
+    transactions {
+        String transactionId PK
+        DateTime timestamp
+        String userId FK
+        Enum8 status
+        LowCardinality_String region
+        LowCardinality_String currency
+        LowCardinality_String paymentMethod
+        Decimal totalAmount
+    }
+
+    transaction_line_items {
+        String lineItemId PK
+        String transactionId FK
+        DateTime timestamp
+        String productId FK
+        Float64 quantity
+        Decimal unitPrice
+        Decimal amount
+    }
+
+    users ||--o{ transactions : "userId"
+    transactions ||--o{ transaction_line_items : "transactionId"
+    products ||--o{ transaction_line_items : "productId"
+```
+
 ## users
 
 | Column | Type | Notes |
