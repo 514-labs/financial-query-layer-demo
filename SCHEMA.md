@@ -85,17 +85,15 @@ export const UserTable = new OlapTable<User>("users", {
 <details>
 <summary>DESCRIBE TABLE users</summary>
 
-```sql
-DESCRIBE TABLE users;
-
-┌─name──────┬─type──────────────────┬─comment──────────────────────────────────────────────────────────────────┐
-│ userId    │ String                │ Unique identifier for the user (UUID).                                   │
-│ createdAt │ DateTime('UTC')       │ Account creation timestamp.                                              │
-│ name      │ String                │ Full display name.                                                       │
-│ email     │ String                │ Email address (unique per user).                                         │
-│ region    │ LowCardinality(String)│ Geographic region: NA-East, NA-West, EU-West, EU-Central, APAC, LATAM.   │
-│ plan      │ LowCardinality(String)│ Subscription tier.                                                       │
-└───────────┴───────────────────────┴──────────────────────────────────────────────────────────────────────────┘
+```
+   ┌─name──────┬─type───────────────────┬─default_type─┬─default_expression─┬─comment────────────────────────────────────────────────────────────────┬─codec_expression─┬─ttl_expression─┐
+1. │ userId    │ String                 │              │                    │ Unique identifier for the user (UUID).                                 │                  │                │
+2. │ createdAt │ DateTime('UTC')        │              │                    │ Account creation timestamp.                                            │                  │                │
+3. │ name      │ String                 │              │                    │ Full display name.                                                     │                  │                │
+4. │ email     │ String                 │              │                    │ Email address (unique per user).                                       │                  │                │
+5. │ region    │ LowCardinality(String) │              │                    │ Geographic region: NA-East, NA-West, EU-West, EU-Central, APAC, LATAM. │                  │                │
+6. │ plan      │ LowCardinality(String) │              │                    │ Subscription tier.                                                     │                  │                │
+   └───────────┴────────────────────────┴──────────────┴────────────────────┴────────────────────────────────────────────────────────────────────────┴──────────────────┴────────────────┘
 ```
 
 </details>
@@ -135,16 +133,14 @@ export const ProductTable = new OlapTable<Product>("products", {
 <details>
 <summary>DESCRIBE TABLE products</summary>
 
-```sql
-DESCRIBE TABLE products;
-
-┌─name──────┬─type──────────────────┬─comment──────────────────────────────────────────────────────────────────┐
-│ productId │ String                │ Unique identifier for the product (UUID).                                │
-│ name      │ String                │ Human-readable product name.                                             │
-│ category  │ LowCardinality(String)│ Product category: Electronics, Software, Services, Hardware, Consulting. │
-│ unitPrice │ Decimal(10, 2)        │ List price in USD.                                                       │
-│ createdAt │ DateTime('UTC')       │ When the product was added to the catalog.                               │
-└───────────┴───────────────────────┴──────────────────────────────────────────────────────────────────────────┘
+```
+   ┌─name──────┬─type───────────────────┬─default_type─┬─default_expression─┬─comment──────────────────────────────────────────────────────────────────┬─codec_expression─┬─ttl_expression─┐
+1. │ productId │ String                 │              │                    │ Unique identifier for the product (UUID).                                │                  │                │
+2. │ name      │ String                 │              │                    │ Human-readable product name.                                             │                  │                │
+3. │ category  │ LowCardinality(String) │              │                    │ Product category: Electronics, Software, Services, Hardware, Consulting. │                  │                │
+4. │ unitPrice │ Decimal(10, 2)         │              │                    │ List price in USD.                                                       │                  │                │
+5. │ createdAt │ DateTime('UTC')        │              │                    │ When the product was added to the catalog.                               │                  │                │
+   └───────────┴────────────────────────┴──────────────┴────────────────────┴──────────────────────────────────────────────────────────────────────────┴──────────────────┴────────────────┘
 ```
 
 </details>
@@ -201,19 +197,21 @@ export const TransactionTable = new OlapTable<Transaction>("transactions", {
 <details>
 <summary>DESCRIBE TABLE transactions</summary>
 
-```sql
-DESCRIBE TABLE transactions;
-
-┌─name──────────┬─type──────────────────┬─comment──────────────────────────────────────────────────────────────┐
-│ transactionId │ String                │ Unique identifier for the transaction (UUID).                        │
-│ timestamp     │ DateTime('UTC')       │ When the transaction occurred.                                       │
-│ userId        │ String                │ Foreign key to users.userId.                                         │
-│ status        │ LowCardinality(String)│ Transaction lifecycle status.                                        │
-│ region        │ LowCardinality(String)│ Geographic region (denormalized from user for efficient filtering).   │
-│ currency      │ LowCardinality(String)│ ISO currency code.                                                   │
-│ paymentMethod │ LowCardinality(String)│ Payment instrument used.                                             │
-│ totalAmount   │ Decimal(10, 2)        │ Sum of all line item amounts for this transaction.                   │
-└───────────────┴───────────────────────┴──────────────────────────────────────────────────────────────────────┘
+```
+┌─name──────────┬─type───────────────────┬─comment─────────────────────────────────────────────────────────────┐
+1. │ transactionId │ String                 │ Unique identifier for the transaction (UUID).                       │
+2. │ timestamp     │ DateTime('UTC')        │ When the transaction occurred.                                      │
+3. │ userId        │ String                 │ Foreign key to `users.userId`.                                      │
+4. │ status        │ LowCardinality(String) │ Transaction lifecycle status.                                      ↴│
+   │               │                        │↳- `pending`   — awaiting processing                                ↴│
+   │               │                        │↳- `completed` — successfully settled (counts toward revenue)       ↴│
+   │               │                        │↳- `failed`    — payment declined or error                          ↴│
+   │               │                        │↳- `refunded`  — reversed after completion                           │
+5. │ region        │ LowCardinality(String) │ Geographic region (denormalized from user for efficient filtering). │
+6. │ currency      │ LowCardinality(String) │ ISO currency code.                                                  │
+7. │ paymentMethod │ LowCardinality(String) │ Payment instrument used.                                            │
+8. │ totalAmount   │ Decimal(10, 2)         │ Sum of all line item amounts for this transaction (in `currency`).  │
+   └───────────────┴────────────────────────┴─────────────────────────────────────────────────────────────────────┘
 ```
 
 </details>
@@ -261,18 +259,16 @@ export const TransactionLineItemTable = new OlapTable<TransactionLineItem>(
 <details>
 <summary>DESCRIBE TABLE transaction_line_items</summary>
 
-```sql
-DESCRIBE TABLE transaction_line_items;
-
-┌─name──────────┬─type──────────┬─comment──────────────────────────────────────────────────────────────────┐
-│ lineItemId    │ String        │ Unique identifier for the line item (UUID).                              │
-│ transactionId │ String        │ Foreign key to transactions.transactionId.                               │
-│ timestamp     │ DateTime('UTC')│ Inherited from parent transaction.                                      │
-│ productId     │ String        │ Foreign key to products.productId.                                       │
-│ quantity      │ Float64       │ Units purchased.                                                         │
-│ unitPrice     │ Decimal(10, 2)│ Price per unit at time of purchase (may differ from catalog price).      │
-│ amount        │ Decimal(10, 2)│ Total for this line: quantity × unitPrice.                               │
-└───────────────┴───────────────┴──────────────────────────────────────────────────────────────────────────┘
+```
+   ┌─name──────────┬─type────────────┬─default_type─┬─default_expression─┬─comment─────────────────────────────────────────────────────────────┬─codec_expression─┬─ttl_expression─┐
+1. │ lineItemId    │ String          │              │                    │ Unique identifier for the line item (UUID).                         │                  │                │
+2. │ transactionId │ String          │              │                    │ Foreign key to `transactions.transactionId`.                        │                  │                │
+3. │ timestamp     │ DateTime('UTC') │              │                    │ Inherited from parent transaction.                                  │                  │                │
+4. │ productId     │ String          │              │                    │ Foreign key to `products.productId`.                                │                  │                │
+5. │ quantity      │ Float64         │              │                    │ Units purchased.                                                    │                  │                │
+6. │ unitPrice     │ Decimal(10, 2)  │              │                    │ Price per unit at time of purchase (may differ from catalog price). │                  │                │
+7. │ amount        │ Decimal(10, 2)  │              │                    │ Total for this line: quantity × unitPrice.                          │                  │                │
+   └───────────────┴─────────────────┴──────────────┴────────────────────┴─────────────────────────────────────────────────────────────────────┴──────────────────┴────────────────┘
 ```
 
 </details>
