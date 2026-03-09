@@ -10,3 +10,4 @@ export * from "./query-models/transaction-metrics";
 // Export all APIs (including MCP server)
 export * from "./apis/mcp";
 export * from "./apis/revenue";
+export * from "./apis/transaction";

@@ -4,6 +4,7 @@ A financial services data surface with two access patterns over the same ClickHo
 
 1. **MCP** — AI chat with free SQL generation via the Model Context Protocol
 2. **Dashboard** — hand-crafted Express API endpoints powering a Next.js revenue dashboard
+3. **Report Builder** — interactive query builder UI powered by `buildQuery()` with selectable metrics, dimensions, and filters
 
 Companion demo for the blog post [Define Once, Use Everywhere](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial). Built with [MooseStack](https://docs.fiveonefour.com).
 
@@ -54,7 +55,9 @@ pnpm dev:web      # Frontend only
 ```
 
 - Dashboard: http://localhost:3000
+- Report Builder: http://localhost:3000/builder
 - Revenue API: http://localhost:4000/revenue/by-region
+- Transaction Metrics API: http://localhost:4000/transaction/metrics
 - MCP endpoint: http://localhost:4000/tools
 - Temporal UI: http://localhost:8080
 
@@ -85,9 +88,11 @@ graph TD
     QL["Query Layer<br/><code>defineQueryModel()</code><br/><code>transactionMetrics</code><br/><code>revenue = sumIf(totalAmount, status = 'completed')</code>"]
 
     QL -->|"buildQuery()"| REV["/revenue<br/>Express API"]
+    QL -->|"buildQuery()"| TXN["/transaction/metrics<br/>Express API"]
     QL -->|"registerModelTools()"| MCP["/tools (MCP)<br/>query_transaction_metrics"]
 
     REV --> DASH["Dashboard<br/>Next.js"]
+    TXN --> BUILDER["Report Builder<br/>Next.js"]
     MCP --> CHAT["Chat UI<br/>Next.js"]
 ```
 
@@ -97,13 +102,21 @@ Compare with the [pre-query-layer architecture (`7da601e`)](https://github.com/5
 
 **Tables → Query Layer**: The `transactionMetrics` query model defines revenue as `sumIf(totalAmount, status = 'completed')` — the single source of truth for all metric calculations.
 
-**Query Layer → API**: The `/revenue` Express endpoint uses `buildQuery(transactionMetrics)` to query ClickHouse. The dashboard renders the results with tooltips showing the metric definition.
+**Query Layer → Dashboard API**: The `/revenue` Express endpoint uses `buildQuery(transactionMetrics)` to query ClickHouse. The dashboard renders the results with tooltips showing the metric definition.
+
+**Query Layer → Report Builder API**: The `/transaction/metrics` endpoint accepts dynamic `metrics`, `dimensions`, and `filter.*` query params, all resolved through `buildQuery()`. The report builder UI lets users pick any combination of metrics and dimensions interactively.
 
 **Query Layer → MCP**: The `/tools` MCP server registers `query_transaction_metrics` via `registerModelTools()`. The AI chat calls this tool instead of writing free-form SQL, ensuring it uses the same metric definitions as the dashboard.
 
 ## Schema Design
 
 See [SCHEMA.md](SCHEMA.md) for full table schemas, column types, and ordering keys.
+
+## Metrics Reference
+
+See [METRICS.md](METRICS.md) for the full metrics layer reference — all metrics, dimensions, filters, and consumption patterns.
+
+<!-- TODO: Add metrics reference content to README or expand METRICS.md with usage examples -->
 
 ## Connecting MCP Clients
 

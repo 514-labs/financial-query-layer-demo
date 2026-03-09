@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ChatLayoutWrapper } from "@/components/layout/chat-layout-wrapper";
+import { Providers } from "@/components/providers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,9 +37,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <TooltipProvider>
-            <ChatLayoutWrapper>{children}</ChatLayoutWrapper>
-          </TooltipProvider>
+          <Providers>
+            <TooltipProvider>
+              <ChatLayoutWrapper>{children}</ChatLayoutWrapper>
+            </TooltipProvider>
+          </Providers>
         </ThemeProvider>
       </body>
     </html>

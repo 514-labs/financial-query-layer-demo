@@ -97,6 +97,16 @@ export const transactionMetrics = defineQueryModel({
       as: "pendingTransactions",
       description: "Count of pending transactions",
     },
+    refundedAmount: {
+      agg: sql`sumIf(totalAmount, status = 'refunded')`,
+      as: "refundedAmount",
+      description: "Total dollar amount of refunded transactions",
+    },
+    pendingAmount: {
+      agg: sql`sumIf(totalAmount, status = 'pending')`,
+      as: "pendingAmount",
+      description: "Total dollar amount of pending transactions",
+    },
     avgTransactionAmount: {
       agg: sql`avgIf(totalAmount, status = 'completed')`,
       as: "avgTransactionAmount",
