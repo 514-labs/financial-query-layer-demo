@@ -148,7 +148,7 @@ Add a metric definition to the `metrics` object in `transaction-metrics.ts`:
 
 ```typescript
 myNewMetric: {
-  agg: sql`sumIf(totalAmount, someCondition)`,
+  agg: sql.fragment`sumIf(totalAmount, someCondition)`,
   as: "myNewMetric",
   description: "What this metric measures",
 },

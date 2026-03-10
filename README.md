@@ -123,7 +123,7 @@ The agent adds the metric to `transaction-metrics.ts`:
 
 ```typescript
 medianTransactionAmount: {
-  agg: sql`medianIf(totalAmount, status = 'completed')`,
+  agg: sql.fragment`medianIf(totalAmount, status = 'completed')`,
   as: "medianTransactionAmount",
   description: "Median transaction amount (completed only)",
 },

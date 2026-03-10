@@ -48,17 +48,17 @@ export const transactionMetrics = defineQueryModel({
       description: "Payment instrument (credit_card, debit_card, bank_transfer, paypal, crypto)",
     },
     day: {
-      expression: sql`toDate(${TransactionTable.columns.timestamp})`,
+      expression: sql.fragment`toDate(${TransactionTable.columns.timestamp})`,
       as: "day",
       description: "Calendar day",
     },
     hour: {
-      expression: sql`toStartOfHour(${TransactionTable.columns.timestamp})`,
+      expression: sql.fragment`toStartOfHour(${TransactionTable.columns.timestamp})`,
       as: "hour",
       description: "Hour bucket",
     },
     month: {
-      expression: sql`toStartOfMonth(${TransactionTable.columns.timestamp})`,
+      expression: sql.fragment`toStartOfMonth(${TransactionTable.columns.timestamp})`,
       as: "month",
       description: "Month bucket",
     },
@@ -66,7 +66,7 @@ export const transactionMetrics = defineQueryModel({
 
   metrics: {
     revenue: {
-      agg: sql`sumIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'completed')`,
+      agg: sql.fragment`sumIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'completed')`,
       as: "revenue",
       description:
         "Total revenue: sum of totalAmount for completed transactions only. " +
@@ -78,47 +78,47 @@ export const transactionMetrics = defineQueryModel({
       description: "Total transaction count across all statuses",
     },
     completedTransactions: {
-      agg: sql`countIf(${TransactionTable.columns.status} = 'completed')`,
+      agg: sql.fragment`countIf(${TransactionTable.columns.status} = 'completed')`,
       as: "completedTransactions",
       description: "Count of completed (settled) transactions",
     },
     failedTransactions: {
-      agg: sql`countIf(${TransactionTable.columns.status} = 'failed')`,
+      agg: sql.fragment`countIf(${TransactionTable.columns.status} = 'failed')`,
       as: "failedTransactions",
       description: "Count of failed transactions",
     },
     refundedTransactions: {
-      agg: sql`countIf(${TransactionTable.columns.status} = 'refunded')`,
+      agg: sql.fragment`countIf(${TransactionTable.columns.status} = 'refunded')`,
       as: "refundedTransactions",
       description: "Count of refunded transactions",
     },
     pendingTransactions: {
-      agg: sql`countIf(${TransactionTable.columns.status} = 'pending')`,
+      agg: sql.fragment`countIf(${TransactionTable.columns.status} = 'pending')`,
       as: "pendingTransactions",
       description: "Count of pending transactions",
     },
     refundedAmount: {
-      agg: sql`sumIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'refunded')`,
+      agg: sql.fragment`sumIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'refunded')`,
       as: "refundedAmount",
       description: "Total dollar amount of refunded transactions",
     },
     pendingAmount: {
-      agg: sql`sumIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'pending')`,
+      agg: sql.fragment`sumIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'pending')`,
       as: "pendingAmount",
       description: "Total dollar amount of pending transactions",
     },
     avgTransactionAmount: {
-      agg: sql`avgIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'completed')`,
+      agg: sql.fragment`avgIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'completed')`,
       as: "avgTransactionAmount",
       description: "Average transaction amount (completed only)",
     },
     medianTransactionAmount: {
-      agg: sql`medianIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'completed')`,
+      agg: sql.fragment`medianIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'completed')`,
       as: "medianTransactionAmount",
       description: "Median transaction amount (completed only)",
     },
     regionCount: {
-      agg: sql`uniqExactIf(${TransactionTable.columns.region}, ${TransactionTable.columns.status} = 'completed')`,
+      agg: sql.fragment`uniqExactIf(${TransactionTable.columns.region}, ${TransactionTable.columns.status} = 'completed')`,
       as: "regionCount",
       description: "Count of distinct regions with at least one completed transaction",
     },
