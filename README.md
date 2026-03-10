@@ -141,11 +141,9 @@ https://github.com/user-attachments/assets/df03f8c1-0557-4238-977c-fda09842e215
 
 See [SCHEMA.md](SCHEMA.md) for full table schemas, column types, and ordering keys.
 
-## Metrics Reference
+## Metrics Layer
 
-See [METRICS.md](METRICS.md) for the full metrics layer reference — all metrics, dimensions, filters, and consumption patterns.
-
-<!-- TODO: Add metrics reference content to README or expand METRICS.md with usage examples -->
+See [metrics-layer.md](metrics-layer.md) for the full reference — all metrics, dimensions, filters, the OlapTable they pull from, and where they are consumed (MCP, REST APIs, report builder).
 
 ## Connecting MCP Clients
 
