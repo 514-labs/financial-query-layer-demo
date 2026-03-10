@@ -42,19 +42,19 @@ The `Transaction` interface provides the raw columns:
 
 All dollar metrics filter on `status = 'completed'` — **revenue excludes pending, failed, and refunded transactions by definition**.
 
-| Metric | ClickHouse Expression | Description |
-|---|---|---|
-| `revenue` | `sumIf(totalAmount, status = 'completed')` | Total revenue (completed only) |
-| `totalTransactions` | `count()` | All transactions regardless of status |
-| `completedTransactions` | `countIf(status = 'completed')` | Settled transactions |
-| `failedTransactions` | `countIf(status = 'failed')` | Failed transactions |
-| `refundedTransactions` | `countIf(status = 'refunded')` | Refunded transactions |
-| `pendingTransactions` | `countIf(status = 'pending')` | Pending transactions |
-| `refundedAmount` | `sumIf(totalAmount, status = 'refunded')` | Dollar total of refunds |
-| `pendingAmount` | `sumIf(totalAmount, status = 'pending')` | Dollar total of pending |
-| `avgTransactionAmount` | `avgIf(totalAmount, status = 'completed')` | Mean completed amount |
-| `medianTransactionAmount` | `medianIf(totalAmount, status = 'completed')` | Median completed amount |
-| `regionCount` | `uniqExactIf(region, status = 'completed')` | Distinct regions with completed transactions |
+| Metric | ClickHouse Expression | Description | Defined at |
+|---|---|---|---|
+| `revenue` | `sumIf(totalAmount, status = 'completed')` | Total revenue (completed only) | [`transaction-metrics.ts:64`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L64) |
+| `totalTransactions` | `count()` | All transactions regardless of status | [`transaction-metrics.ts:71`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L71) |
+| `completedTransactions` | `countIf(status = 'completed')` | Settled transactions | [`transaction-metrics.ts:76`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L76) |
+| `failedTransactions` | `countIf(status = 'failed')` | Failed transactions | [`transaction-metrics.ts:81`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L81) |
+| `refundedTransactions` | `countIf(status = 'refunded')` | Refunded transactions | [`transaction-metrics.ts:86`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L86) |
+| `pendingTransactions` | `countIf(status = 'pending')` | Pending transactions | [`transaction-metrics.ts:91`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L91) |
+| `refundedAmount` | `sumIf(totalAmount, status = 'refunded')` | Dollar total of refunds | [`transaction-metrics.ts:96`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L96) |
+| `pendingAmount` | `sumIf(totalAmount, status = 'pending')` | Dollar total of pending | [`transaction-metrics.ts:101`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L101) |
+| `avgTransactionAmount` | `avgIf(totalAmount, status = 'completed')` | Mean completed amount | [`transaction-metrics.ts:106`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L106) |
+| `medianTransactionAmount` | `medianIf(totalAmount, status = 'completed')` | Median completed amount | [`transaction-metrics.ts:111`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L111) |
+| `regionCount` | `uniqExactIf(region, status = 'completed')` | Distinct regions with completed transactions | [`transaction-metrics.ts:116`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L116) |
 
 ## Dimensions
 
