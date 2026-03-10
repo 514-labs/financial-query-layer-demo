@@ -25,6 +25,7 @@ import {
 } from "@514labs/moose-lib";
 import { createAuthMiddleware } from "@514labs/express-pbkdf2-api-key-auth";
 import { transactionMetrics } from "../query-models/transaction-metrics";
+import { latestStatusMetrics } from "../query-models/latest-status-metrics";
 
 function clickhouseReadonlyQuery(
   client: MooseUtils["client"],
@@ -440,7 +441,7 @@ const serverFactory = (mooseUtils: MooseUtils) => {
   // the docs confirm structural compatibility.
   registerModelTools(
     server,
-    [transactionMetrics] as unknown as QueryModelBase[],
+    [transactionMetrics, latestStatusMetrics] as unknown as QueryModelBase[],
     mooseUtils.client.query,
   );
 
