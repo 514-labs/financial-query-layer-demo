@@ -6,6 +6,10 @@
  * dashboard REST API, MCP tools, and AI SDK — uses this definition,
  * guaranteeing consistent numbers across all interfaces.
  *
+ * All column references use `TransactionTable.columns.*` so that
+ * renaming a field in the Transaction interface produces a compile
+ * error here instead of silently generating wrong SQL at runtime.
+ *
  * ## Consumption
  *
  * - **MCP tool**: Automatically registered as `query_transaction_metrics`
@@ -35,7 +39,7 @@ export const transactionMetrics = defineQueryModel({
       column: "region",
       description: "Geographic region (NA-East, NA-West, EU-West, EU-Central, APAC, LATAM)",
     },
-currency: {
+    currency: {
       column: "currency",
       description: "ISO currency code (USD, EUR, GBP)",
     },
@@ -44,17 +48,17 @@ currency: {
       description: "Payment instrument (credit_card, debit_card, bank_transfer, paypal, crypto)",
     },
     day: {
-      expression: sql`toDate(timestamp)`,
+      expression: sql`toDate(${TransactionTable.columns.timestamp})`,
       as: "day",
       description: "Calendar day",
     },
     hour: {
-      expression: sql`toStartOfHour(timestamp)`,
+      expression: sql`toStartOfHour(${TransactionTable.columns.timestamp})`,
       as: "hour",
       description: "Hour bucket",
     },
     month: {
-      expression: sql`toStartOfMonth(timestamp)`,
+      expression: sql`toStartOfMonth(${TransactionTable.columns.timestamp})`,
       as: "month",
       description: "Month bucket",
     },
@@ -62,7 +66,7 @@ currency: {
 
   metrics: {
     revenue: {
-      agg: sql`sumIf(totalAmount, status = 'completed')`,
+      agg: sql`sumIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'completed')`,
       as: "revenue",
       description:
         "Total revenue: sum of totalAmount for completed transactions only. " +
@@ -74,47 +78,47 @@ currency: {
       description: "Total transaction count across all statuses",
     },
     completedTransactions: {
-      agg: sql`countIf(status = 'completed')`,
+      agg: sql`countIf(${TransactionTable.columns.status} = 'completed')`,
       as: "completedTransactions",
       description: "Count of completed (settled) transactions",
     },
     failedTransactions: {
-      agg: sql`countIf(status = 'failed')`,
+      agg: sql`countIf(${TransactionTable.columns.status} = 'failed')`,
       as: "failedTransactions",
       description: "Count of failed transactions",
     },
     refundedTransactions: {
-      agg: sql`countIf(status = 'refunded')`,
+      agg: sql`countIf(${TransactionTable.columns.status} = 'refunded')`,
       as: "refundedTransactions",
       description: "Count of refunded transactions",
     },
     pendingTransactions: {
-      agg: sql`countIf(status = 'pending')`,
+      agg: sql`countIf(${TransactionTable.columns.status} = 'pending')`,
       as: "pendingTransactions",
       description: "Count of pending transactions",
     },
     refundedAmount: {
-      agg: sql`sumIf(totalAmount, status = 'refunded')`,
+      agg: sql`sumIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'refunded')`,
       as: "refundedAmount",
       description: "Total dollar amount of refunded transactions",
     },
     pendingAmount: {
-      agg: sql`sumIf(totalAmount, status = 'pending')`,
+      agg: sql`sumIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'pending')`,
       as: "pendingAmount",
       description: "Total dollar amount of pending transactions",
     },
     avgTransactionAmount: {
-      agg: sql`avgIf(totalAmount, status = 'completed')`,
+      agg: sql`avgIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'completed')`,
       as: "avgTransactionAmount",
       description: "Average transaction amount (completed only)",
     },
     medianTransactionAmount: {
-      agg: sql`medianIf(totalAmount, status = 'completed')`,
+      agg: sql`medianIf(${TransactionTable.columns.totalAmount}, ${TransactionTable.columns.status} = 'completed')`,
       as: "medianTransactionAmount",
       description: "Median transaction amount (completed only)",
     },
     regionCount: {
-      agg: sql`uniqExactIf(region, status = 'completed')`,
+      agg: sql`uniqExactIf(${TransactionTable.columns.region}, ${TransactionTable.columns.status} = 'completed')`,
       as: "regionCount",
       description: "Count of distinct regions with at least one completed transaction",
     },
@@ -126,7 +130,7 @@ currency: {
       operators: ["eq", "in"] as const,
       description: "Filter by geographic region",
     },
-currency: {
+    currency: {
       column: "currency",
       operators: ["eq", "in"] as const,
       description: "Filter by currency code (USD, EUR, GBP)",
