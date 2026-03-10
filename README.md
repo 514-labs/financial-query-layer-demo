@@ -6,12 +6,13 @@ A financial services data surface with two access patterns over the same ClickHo
 2. **Dashboard** — hand-crafted Express API endpoints powering a Next.js revenue dashboard
 3. **Report Builder** — interactive query builder UI powered by `buildQuery()` with selectable metrics, dimensions, and filters
 
-Companion demo for the blog post [Define Once, Use Everywhere](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial). Built with [MooseStack](https://docs.fiveonefour.com).
+Companion demo for the blog post [Define one, project everywhere: a metrics layer for ClickHouse with MooseStack](https://clickhouse.com/blog/metrics-layer-with-fiveonefour). Built with [MooseStack](https://docs.fiveonefour.com) — see the [step-by-step guide](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial?lang=typescript) to build it yourself.
 
-| Without query layer ([`7da601e`](https://github.com/514-labs/financial-query-layer-demo/tree/7da601e)) | With query layer (`main`) |
-|---|---|
-| <img src="bad-prompt.gif" alt="Vibe SQL gets revenue wrong" width="400"> | <img src="good-prompt.gif" alt="Query layer gets it right" width="400"> |
-| AI generates SQL against raw tables — misses `WHERE status = 'completed'`, inflating revenue. Dashboard and chat show different numbers. | Revenue is defined once as `sumIf(totalAmount, status = 'completed')`. Dashboard, chat, and any future surface all use the same metric definition. |
+<img src="comparison.gif" alt="Side-by-side: without query layer the dashboard and chat show different revenue numbers; with the query layer they match" width="800">
+
+**Left — [without query layer (`7da601e`)](https://github.com/514-labs/financial-query-layer-demo/tree/7da601e):** AI generates SQL against raw tables, misses `WHERE status = 'completed'`, and inflates revenue. Dashboard says $546M, chat says $754M. ([standalone](bad-prompt.gif))
+
+**Right — with query layer (`main`):** Revenue is defined once as `sumIf(totalAmount, status = 'completed')`. Dashboard and chat both show $770M. ([standalone](good-prompt.gif))
 
 ## Quickstart
 
@@ -194,6 +195,6 @@ Ensure the MooseStack backend is running — the `/revenue` API includes CORS mi
 
 ## Learn More
 
-- [Chat in Your App Tutorial](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial)
+- [Chat in Your App Tutorial](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial?lang=typescript)
 - [MooseStack Documentation](https://docs.fiveonefour.com)
 - [Model Context Protocol](https://modelcontextprotocol.io)
