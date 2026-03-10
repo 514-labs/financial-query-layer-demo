@@ -60,14 +60,14 @@ All dollar metrics filter on `status = 'completed'` — **revenue excludes pendi
 
 Dimensions control the `GROUP BY` clause. Column dimensions map directly to table columns; expression dimensions are computed at query time.
 
-| Dimension | Type | Source | Description |
-|---|---|---|---|
-| `region` | column | `region` | NA-East, NA-West, EU-West, EU-Central, APAC, LATAM |
-| `currency` | column | `currency` | USD, EUR, GBP |
-| `paymentMethod` | column | `paymentMethod` | credit_card, debit_card, bank_transfer, paypal, crypto |
-| `day` | expression | `toDate(timestamp)` | Calendar day |
-| `hour` | expression | `toStartOfHour(timestamp)` | Hour bucket |
-| `month` | expression | `toStartOfMonth(timestamp)` | Month bucket |
+| Dimension | Type | Source | Description | Defined at |
+|---|---|---|---|---|
+| `region` | column | `region` | NA-East, NA-West, EU-West, EU-Central, APAC, LATAM | [`transaction-metrics.ts:34`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L34) |
+| `currency` | column | `currency` | USD, EUR, GBP | [`transaction-metrics.ts:38`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L38) |
+| `paymentMethod` | column | `paymentMethod` | credit_card, debit_card, bank_transfer, paypal, crypto | [`transaction-metrics.ts:42`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L42) |
+| `day` | expression | `toDate(timestamp)` | Calendar day | [`transaction-metrics.ts:46`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L46) |
+| `hour` | expression | `toStartOfHour(timestamp)` | Hour bucket | [`transaction-metrics.ts:51`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L51) |
+| `month` | expression | `toStartOfMonth(timestamp)` | Month bucket | [`transaction-metrics.ts:56`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L56) |
 
 Note: `status` is intentionally **not** a dimension. Business logic is baked into the metrics themselves (e.g. `revenue` only counts completed), so grouping by status would conflict with those definitions.
 
@@ -75,12 +75,12 @@ Note: `status` is intentionally **not** a dimension. Business logic is baked int
 
 Categorical filters (region, currency, paymentMethod) support `eq` and `in` operators. The timestamp filter supports `gte` and `lte` for range queries.
 
-| Filter | Column | Operators | Values |
-|---|---|---|---|
-| `region` | `region` | `eq`, `in` | Fetched as DISTINCT from ClickHouse at runtime |
-| `currency` | `currency` | `eq`, `in` | Fetched as DISTINCT from ClickHouse at runtime |
-| `paymentMethod` | `paymentMethod` | `eq`, `in` | Fetched as DISTINCT from ClickHouse at runtime |
-| `timestamp` | `timestamp` | `gte`, `lte` | Free-form date range |
+| Filter | Column | Operators | Values | Defined at |
+|---|---|---|---|---|
+| `region` | `region` | `eq`, `in` | Fetched as DISTINCT from ClickHouse at runtime | [`transaction-metrics.ts:124`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L124) |
+| `currency` | `currency` | `eq`, `in` | Fetched as DISTINCT from ClickHouse at runtime | [`transaction-metrics.ts:129`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L129) |
+| `paymentMethod` | `paymentMethod` | `eq`, `in` | Fetched as DISTINCT from ClickHouse at runtime | [`transaction-metrics.ts:134`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L134) |
+| `timestamp` | `timestamp` | `gte`, `lte` | Free-form date range | [`transaction-metrics.ts:139`](packages/moosestack-service/app/query-models/transaction-metrics.ts#L139) |
 
 Filter values for categorical filters are **not hardcoded** — the `/transaction/schema` endpoint queries ClickHouse for distinct values using `buildQuery().dimensions([filterId])`, so new values (e.g. a new region) appear automatically.
 
