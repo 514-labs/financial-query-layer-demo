@@ -2,6 +2,15 @@
 
 The metrics layer is a semantic query model that defines **what** financial metrics mean and **how** they are calculated. It is defined once and consumed by every surface in the application.
 
+```mermaid
+graph LR
+    T["OlapTable / MV<br/><i>TransactionTable</i>"] --> Q["Query Model<br/><code>defineQueryModel()</code><br/><code>transactionMetrics</code>"]
+    Q --> MCP["/tools (MCP)<br/><code>query_transaction_metrics</code>"]
+    Q --> DASH["/revenue (REST)<br/>Dashboard API"]
+    Q --> TXN["/transaction (REST)<br/>Report Builder API"]
+    Q --> SCHEMA["/transaction/schema<br/>UI Schema Discovery"]
+```
+
 ## Source Definition
 
 **File:** [`packages/moosestack-service/app/query-models/transaction-metrics.ts`](packages/moosestack-service/app/query-models/transaction-metrics.ts)
@@ -146,3 +155,5 @@ myNewMetric: {
 ```
 
 That's it. The MCP tool, REST APIs, schema endpoint, and report builder UI all pick it up automatically.
+
+https://github.com/user-attachments/assets/df03f8c1-0557-4238-977c-fda09842e215
