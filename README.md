@@ -6,7 +6,7 @@ A financial services data surface with two access patterns over the same ClickHo
 2. **Dashboard** — hand-crafted Express API endpoints powering a Next.js revenue dashboard
 3. **Report Builder** — interactive query builder UI powered by `buildQuery()` with selectable metrics, dimensions, and filters
 
-Companion demo for the blog post [Define Once, Use Everywhere](https://clickhouse.com/blog/metrics-layer-with-fiveonefour). Built with [MooseStack](https://docs.fiveonefour.com).
+Companion demo for the blog post [Define Once, Use Everywhere](https://clickhouse.com/blog/metrics-layer-with-fiveonefour). Built with [MooseStack](https://docs.fiveonefour.com) — see the [step-by-step guide](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial?lang=typescript) to build it yourself.
 
 <img src="comparison.gif" alt="Side-by-side: without query layer the dashboard and chat show different revenue numbers; with the query layer they match" width="800">
 
@@ -195,6 +195,6 @@ Ensure the MooseStack backend is running — the `/revenue` API includes CORS mi
 
 ## Learn More
 
-- [Chat in Your App Tutorial](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial)
+- [Chat in Your App Tutorial](https://docs.fiveonefour.com/guides/chat-in-your-app/tutorial?lang=typescript)
 - [MooseStack Documentation](https://docs.fiveonefour.com)
 - [Model Context Protocol](https://modelcontextprotocol.io)
