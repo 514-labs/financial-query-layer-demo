@@ -152,12 +152,11 @@ export const generateDataTask = new Task<void, GenerateDataOutput>(
     run: async () => {
       const { client } = await getMooseUtils();
       const ch = client.query.client;
-      const db = "local";
 
       // --- Check existing counts ---
       const countQuery = async (table: string): Promise<number> => {
         const result = await ch.query({
-          query: `SELECT count() as c FROM ${db}.${table}`,
+          query: `SELECT count() as c FROM ${table}`,
           format: "JSONEachRow",
         });
         const rows: { c: string }[] = await result.json();
@@ -172,11 +171,11 @@ export const generateDataTask = new Task<void, GenerateDataOutput>(
       // --- Fetch existing reference data ---
       const [userIdsResult, productsResult] = await Promise.all([
         ch.query({
-          query: `SELECT userId FROM ${db}.users ORDER BY rand() LIMIT 1000`,
+          query: `SELECT userId FROM users ORDER BY rand() LIMIT 10000`,
           format: "JSONEachRow",
         }),
         ch.query({
-          query: `SELECT productId, unitPrice, category FROM ${db}.products ORDER BY rand() LIMIT 200`,
+          query: `SELECT productId, unitPrice, category FROM products ORDER BY rand() LIMIT 500`,
           format: "JSONEachRow",
         }),
       ]);
@@ -194,7 +193,7 @@ export const generateDataTask = new Task<void, GenerateDataOutput>(
 
       // --- Generate Users ---
       const userCount =
-        existingUserCount < 200 ? randInt(100, 200) : randInt(50, 150);
+        existingUserCount < 5000 ? randInt(2000, 5000) : randInt(100, 500);
       const newUsers = Array.from({ length: userCount }, () => {
         const firstName = randChoice(FIRST_NAMES);
         const lastName = randChoice(LAST_NAMES);
@@ -211,17 +210,17 @@ export const generateDataTask = new Task<void, GenerateDataOutput>(
       });
 
       await ch.insert({
-        table: `${db}.users`,
+        table: "users",
         values: newUsers,
         format: "JSONEachRow",
       });
 
       // --- Generate Products ---
       let productCount = 0;
-      if (existingProductCount < 30) {
-        productCount = randInt(20, 35);
+      if (existingProductCount < 200) {
+        productCount = randInt(100, 200);
       } else if (Math.random() < 0.15) {
-        productCount = randInt(1, 5);
+        productCount = randInt(5, 20);
       }
 
       const newProducts = Array.from({ length: productCount }, () => ({
@@ -236,7 +235,7 @@ export const generateDataTask = new Task<void, GenerateDataOutput>(
 
       if (newProducts.length > 0) {
         await ch.insert({
-          table: `${db}.products`,
+          table: "products",
           values: newProducts,
           format: "JSONEachRow",
         });
@@ -265,88 +264,105 @@ export const generateDataTask = new Task<void, GenerateDataOutput>(
         };
       }
 
-      // --- Generate Transactions + Line Items ---
-      const txCount = randInt(800, 1200);
-      const transactions: Record<string, unknown>[] = [];
-      const lineItems: Record<string, unknown>[] = [];
+      // --- Generate Transactions + Line Items in 100K batches ---
+      const BATCH_SIZE = 100_000;
+      const TOTAL_TX = 2_500_000;
+      let totalTxGenerated = 0;
+      let totalLineItemsGenerated = 0;
 
-      for (let i = 0; i < txCount; i++) {
-        const txId = crypto.randomUUID();
-        const txTimestamp = toClickHouseDateTime(
-          new Date(now.getTime() - randInt(0, 15_000)),
-        );
-        const userId = randChoice(allUserIds);
-        const region = randChoice(REGIONS);
-        const status = weightedChoice(STATUSES, STATUS_WEIGHTS);
+      // Spread transactions over 2 years
+      const twoYearsMs = 2 * 365 * 24 * 60 * 60 * 1000;
 
-        // 1-8 line items per transaction, skewed toward 3-5
-        const itemCount = Math.min(
-          8,
-          Math.max(1, Math.round(randInt(2, 6) + (Math.random() - 0.5) * 4)),
-        );
-        let txTotal = 0;
+      for (let batchStart = 0; batchStart < TOTAL_TX; batchStart += BATCH_SIZE) {
+        const batchSize = Math.min(BATCH_SIZE, TOTAL_TX - batchStart);
+        const transactions: Record<string, unknown>[] = [];
+        const lineItems: Record<string, unknown>[] = [];
 
-        for (let j = 0; j < itemCount; j++) {
-          const product = randChoice(allProducts);
-          const quantity = weightedChoice(
-            [1, 2, 3, 4, 5],
-            [0.4, 0.3, 0.15, 0.1, 0.05],
+        for (let i = 0; i < batchSize; i++) {
+          const txId = crypto.randomUUID();
+          const txTimestamp = toClickHouseDateTime(
+            new Date(now.getTime() - randInt(0, twoYearsMs)),
           );
-          // ±20% price variation from list price
-          const unitPrice =
-            parseFloat(product.unitPrice) * (0.8 + Math.random() * 0.4);
-          const amount = quantity * unitPrice;
-          txTotal += amount;
+          const userId = randChoice(allUserIds);
+          const region = randChoice(REGIONS);
+          const status = weightedChoice(STATUSES, STATUS_WEIGHTS);
 
-          lineItems.push({
-            lineItemId: crypto.randomUUID(),
+          // 1-8 line items per transaction, skewed toward 3-5
+          const itemCount = Math.min(
+            8,
+            Math.max(1, Math.round(randInt(2, 6) + (Math.random() - 0.5) * 4)),
+          );
+          let txTotal = 0;
+
+          for (let j = 0; j < itemCount; j++) {
+            const product = randChoice(allProducts);
+            const quantity = weightedChoice(
+              [1, 2, 3, 4, 5],
+              [0.4, 0.3, 0.15, 0.1, 0.05],
+            );
+            // ±20% price variation from list price
+            const unitPrice =
+              parseFloat(product.unitPrice) * (0.8 + Math.random() * 0.4);
+            const amount = quantity * unitPrice;
+            txTotal += amount;
+
+            lineItems.push({
+              lineItemId: crypto.randomUUID(),
+              transactionId: txId,
+              timestamp: txTimestamp,
+              productId: product.productId,
+              quantity,
+              unitPrice: unitPrice.toFixed(2),
+              amount: amount.toFixed(2),
+            });
+          }
+
+          transactions.push({
             transactionId: txId,
             timestamp: txTimestamp,
-            productId: product.productId,
-            quantity,
-            unitPrice: unitPrice.toFixed(2),
-            amount: amount.toFixed(2),
+            userId,
+            status,
+            region,
+            currency: weightedChoice(CURRENCIES, CURRENCY_WEIGHTS),
+            paymentMethod: weightedChoice(PAYMENT_METHODS, PAYMENT_WEIGHTS),
+            totalAmount: txTotal.toFixed(2),
           });
         }
 
-        transactions.push({
-          transactionId: txId,
-          timestamp: txTimestamp,
-          userId,
-          status,
-          region,
-          currency: weightedChoice(CURRENCIES, CURRENCY_WEIGHTS),
-          paymentMethod: weightedChoice(PAYMENT_METHODS, PAYMENT_WEIGHTS),
-          totalAmount: txTotal.toFixed(2),
+        // Insert transactions batch
+        await ch.insert({
+          table: "transactions",
+          values: transactions,
+          format: "JSONEachRow",
         });
+
+        // Insert line items in 100K chunks (can be 300K+ per tx batch)
+        for (let li = 0; li < lineItems.length; li += BATCH_SIZE) {
+          const chunk = lineItems.slice(li, li + BATCH_SIZE);
+          await ch.insert({
+            table: "transaction_line_items",
+            values: chunk,
+            format: "JSONEachRow",
+          });
+        }
+
+        totalTxGenerated += transactions.length;
+        totalLineItemsGenerated += lineItems.length;
       }
-
-      // Batch insert
-      await ch.insert({
-        table: `${db}.transactions`,
-        values: transactions,
-        format: "JSONEachRow",
-      });
-
-      await ch.insert({
-        table: `${db}.transaction_line_items`,
-        values: lineItems,
-        format: "JSONEachRow",
-      });
 
       return {
         usersGenerated: newUsers.length,
         productsGenerated: newProducts.length,
-        transactionsGenerated: transactions.length,
-        lineItemsGenerated: lineItems.length,
+        transactionsGenerated: totalTxGenerated,
+        lineItemsGenerated: totalLineItemsGenerated,
       };
     },
-    retries: 2,
-    timeout: "30s",
+    retries: 1,
+    timeout: "30m",
   },
 );
 
 export const generateDataWorkflow = new Workflow("generate-data", {
   startingTask: generateDataTask,
-  schedule: "@every 15s",
+  schedule: "@once",
 });
