@@ -163,10 +163,22 @@ export const generateDataTask = new Task<void, GenerateDataOutput>(
         return Number(rows[0]?.c ?? 0);
       };
 
-      const [existingUserCount, existingProductCount] = await Promise.all([
-        countQuery("users"),
-        countQuery("products"),
-      ]);
+      const [existingUserCount, existingProductCount, existingTxCount] =
+        await Promise.all([
+          countQuery("users"),
+          countQuery("products"),
+          countQuery("transactions"),
+        ]);
+
+      // Skip if we already have enough data
+      if (existingTxCount >= 2_000_000) {
+        return {
+          usersGenerated: 0,
+          productsGenerated: 0,
+          transactionsGenerated: 0,
+          lineItemsGenerated: 0,
+        };
+      }
 
       // --- Fetch existing reference data ---
       const [userIdsResult, productsResult] = await Promise.all([
@@ -364,5 +376,5 @@ export const generateDataTask = new Task<void, GenerateDataOutput>(
 
 export const generateDataWorkflow = new Workflow("generate-data", {
   startingTask: generateDataTask,
-  schedule: "@once",
+  schedule: "@every 5m",
 });
