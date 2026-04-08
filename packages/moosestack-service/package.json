@@ -1,21 +1,32 @@
 {
-  "name": "query-benchmarks",
-  "private": true,
-  "version": "0.0.0",
+  "name": "moosestack-service",
+  "version": "0.0",
   "type": "module",
-  "engines": {
-    "node": ">=20 <25"
-  },
   "scripts": {
+    "moose": "moose-cli",
+    "build": "moose-cli build --docker",
+    "dev": "moose-cli dev",
     "env:preview": "514 env list --platform --dotenv > .env.preview",
-    "bench": "vitest run --config vitest.config.ts",
-    "typecheck": "tsc --project tsconfig.json --noEmit"
+    "bench": "vitest run --config vitest.config.ts"
   },
   "dependencies": {
-    "@514labs/moose-lib": "^0.6.493",
-    "@types/node": "^20.19.39",
+    "@514labs/express-pbkdf2-api-key-auth": "^1.0.4",
+    "@514labs/moose-lib": "0.6.493",
+    "@cfworker/json-schema": "4.1.1",
+    "@modelcontextprotocol/sdk": "1.26.0",
+    "cors": "^2.8.6",
     "dotenv": "^17.4.1",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "express": "^5.1.0",
+    "ts-patch": "^3.3.0",
+    "tsconfig-paths": "^4.2.0",
+    "typia": "^9.6.1",
+    "vitest": "^3.2.4",
+    "zod": "3.25.76"
+  },
+  "devDependencies": {
+    "@514labs/moose-cli": "0.6.493",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^20.12.12"
   }
 }
