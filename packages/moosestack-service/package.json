@@ -1,7 +1,6 @@
 {
   "name": "moosestack-service",
   "version": "0.0",
-  "type": "module",
   "scripts": {
     "moose": "moose-cli",
     "build": "moose-cli build --docker",
@@ -15,12 +14,10 @@
     "@cfworker/json-schema": "4.1.1",
     "@modelcontextprotocol/sdk": "1.26.0",
     "cors": "^2.8.6",
-    "dotenv": "^17.4.1",
     "express": "^5.1.0",
     "ts-patch": "^3.3.0",
     "tsconfig-paths": "^4.2.0",
     "typia": "^9.6.1",
-    "vitest": "^3.2.4",
     "zod": "3.25.76"
   },
   "devDependencies": {
