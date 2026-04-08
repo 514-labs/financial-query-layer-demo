@@ -1,4 +1,11 @@
-import { OlapTable, Decimal, LowCardinality } from "@514labs/moose-lib";
+import {
+  OlapTable,
+  Decimal,
+  LowCardinality,
+  MaterializedView,
+  Aggregated,
+  ClickHouseEngines,
+} from "@514labs/moose-lib";
 
 // ---- User ----
 
@@ -143,3 +150,88 @@ export const TransactionLineItemTable = new OlapTable<TransactionLineItem>(
     orderByFields: ["transactionId", "timestamp"],
   },
 );
+
+// ---- Transaction Metrics Daily (Incremental MV) ----
+
+/**
+ * Pre-aggregated daily transaction metrics.
+ *
+ * This is the target table for an AggregatingMergeTree materialized view
+ * that incrementally aggregates transaction data by (region, currency,
+ * paymentMethod, day). Queries against this table read thousands of rows
+ * instead of hundreds of thousands, dramatically reducing latency for
+ * dashboard and MCP tool queries.
+ *
+ * Columns use `Aggregated<fn, argTypes>` to map to ClickHouse
+ * `AggregateFunction(fn, argTypes...)` storage. At query time, use the
+ * corresponding `-Merge` combinators (e.g. `sumIfMerge(revenue)`).
+ */
+export interface TransactionMetricsDaily {
+  region: string & LowCardinality;
+  currency: string & LowCardinality;
+  paymentMethod: string & LowCardinality;
+  day: Date;
+  /** AggregateFunction(sumIf, Decimal(10,2), LowCardinality(String)) — revenue from completed txns */
+  revenue: number & Aggregated<"sumIf", [Decimal<10, 2>, string & LowCardinality]>;
+  /** AggregateFunction(count) — total transaction count */
+  totalTransactions: number & Aggregated<"count">;
+  /** AggregateFunction(countIf, LowCardinality(String)) — completed count */
+  completedTransactions: number & Aggregated<"countIf", [string & LowCardinality]>;
+  /** AggregateFunction(countIf, LowCardinality(String)) — failed count */
+  failedTransactions: number & Aggregated<"countIf", [string & LowCardinality]>;
+  /** AggregateFunction(countIf, LowCardinality(String)) — refunded count */
+  refundedTransactions: number & Aggregated<"countIf", [string & LowCardinality]>;
+  /** AggregateFunction(countIf, LowCardinality(String)) — pending count */
+  pendingTransactions: number & Aggregated<"countIf", [string & LowCardinality]>;
+  /** AggregateFunction(sumIf, Decimal(10,2), LowCardinality(String)) — refunded amount */
+  refundedAmount: number & Aggregated<"sumIf", [Decimal<10, 2>, string & LowCardinality]>;
+  /** AggregateFunction(sumIf, Decimal(10,2), LowCardinality(String)) — pending amount */
+  pendingAmount: number & Aggregated<"sumIf", [Decimal<10, 2>, string & LowCardinality]>;
+  /** AggregateFunction(sumIf, Decimal(10,2), LowCardinality(String)) — sum(totalAmount) for completed (numerator of avg) */
+  totalAmountSum: number & Aggregated<"sumIf", [Decimal<10, 2>, string & LowCardinality]>;
+  /** AggregateFunction(countIf, LowCardinality(String)) — count where completed (denominator of avg) */
+  totalAmountCount: number & Aggregated<"countIf", [string & LowCardinality]>;
+}
+
+/**
+ * Target table for the daily transaction metrics MV.
+ * Uses AggregatingMergeTree engine, ordered by (region, day) for
+ * efficient region-first then time-range queries.
+ */
+export const TransactionMetricsDailyTable = new OlapTable<TransactionMetricsDaily>(
+  "transaction_metrics_daily",
+  {
+    orderByFields: ["region", "day"],
+    engine: ClickHouseEngines.AggregatingMergeTree,
+  },
+);
+
+/**
+ * Incremental materialized view that populates `transaction_metrics_daily`
+ * from inserts into the `transactions` table. Uses `-State` combinators
+ * so ClickHouse can merge partial aggregates across inserts.
+ */
+export const transactionMetricsDailyMV = new MaterializedView<TransactionMetricsDaily>({
+  materializedViewName: "transaction_metrics_daily_mv",
+  selectStatement: `
+    SELECT
+      region,
+      currency,
+      paymentMethod,
+      toDate(timestamp) AS day,
+      sumIfState(totalAmount, status = 'completed') AS revenue,
+      countState() AS totalTransactions,
+      countIfState(status = 'completed') AS completedTransactions,
+      countIfState(status = 'failed') AS failedTransactions,
+      countIfState(status = 'refunded') AS refundedTransactions,
+      countIfState(status = 'pending') AS pendingTransactions,
+      sumIfState(totalAmount, status = 'refunded') AS refundedAmount,
+      sumIfState(totalAmount, status = 'pending') AS pendingAmount,
+      sumIfState(totalAmount, status = 'completed') AS totalAmountSum,
+      countIfState(status = 'completed') AS totalAmountCount
+    FROM transactions
+    GROUP BY region, currency, paymentMethod, day
+  `,
+  selectTables: [TransactionTable],
+  targetTable: TransactionMetricsDailyTable,
+});
