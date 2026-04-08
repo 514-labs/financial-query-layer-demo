@@ -1,12 +1,4 @@
-# Moose / Sloan / Cursor folders
-.moose
-.sloan
-.cursor
-
-# Node
-node_modules
-dist
-coverage
-.ts-node
-
-.env*.local
+node_modules/
+reports/
+.env
+.env.*
