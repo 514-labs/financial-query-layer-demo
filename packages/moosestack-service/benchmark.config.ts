@@ -1,6 +1,8 @@
 import { buildQuery } from "@514labs/moose-lib";
 import { defineBenchmark } from "./benchmark/core";
-import { transactionMetrics } from "./dist/app/query-models/transaction-metrics.js";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { transactionMetrics } = require("./dist/app/query-models/transaction-metrics.js");
 
 const benchmarkModel = transactionMetrics;
 

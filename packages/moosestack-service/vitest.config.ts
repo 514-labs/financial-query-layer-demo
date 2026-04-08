@@ -13,5 +13,10 @@ export default defineConfig({
     outputFile: {
       json: "./reports/test-results.json",
     },
+    server: {
+      deps: {
+        external: [/dist\//],
+      },
+    },
   },
 });
