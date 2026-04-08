@@ -100,11 +100,12 @@ export interface Transaction {
 }
 
 /**
- * Transactions table — ordered by (userId, timestamp) for efficient
- * per-user lookups over time. Revenue queries filter on `status`.
+ * Transactions table — ordered by (region, timestamp) so queries that
+ * filter on region skip ~83% of granules, and timestamp enables range
+ * pruning within each region.
  */
 export const TransactionTable = new OlapTable<Transaction>("transactions", {
-  orderByFields: ["userId", "timestamp"],
+  orderByFields: ["region", "timestamp"],
 });
 
 // ---- Transaction Line Item ----
