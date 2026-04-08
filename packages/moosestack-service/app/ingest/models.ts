@@ -6,6 +6,7 @@ import {
   Aggregated,
   ClickHouseEngines,
 } from "@514labs/moose-lib";
+// perf/candidate-b: incremental MV for daily transaction metrics
 
 // ---- User ----
 
