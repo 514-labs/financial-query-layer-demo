@@ -1,4 +1,5 @@
 import { OlapTable, Decimal, LowCardinality } from "@514labs/moose-lib";
+// perf/candidate-a: ORDER BY changed to (region, timestamp)
 
 // ---- User ----
 
